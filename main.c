@@ -79,12 +79,18 @@ void perform_connection(int listen_socket)
     printf("Received %d bytes:\n%s", n, buffer);
 
     int calculation_result;
-    calculate(buffer, &calculation_result);
-    printf("-------- %d --------\n", calculation_result);
+    if (calculate(buffer, &calculation_result))
+    {
+        printf("-------- %d --------\n", calculation_result);
 
-    n = write(connection_socket, buffer, strlen(buffer));
-    if (n < 0)
-        error();
+        n = write(connection_socket, buffer, strlen(buffer));
+        if (n < 0)
+            error();
+    }
+    else
+    {
+        printf("-------- CALCULATION FAILED/QUIT --------\n");
+    }
 
     close(connection_socket);
 }
@@ -131,7 +137,6 @@ int calculate(char *input, int *result)
     while (token != NULL)
     {
         handle_token(&stack, token);
-        printf("[%s]\n", token);
         token = strtok(NULL, " ");
     }
 
@@ -175,7 +180,11 @@ char handle_token(Stack *stack, char *token)
     else if (strncmp(token, "*", 1) == 0)
         bin_op_stack(stack, &ftimes);
     else
+    {
         return 1;
+    }
+
+    printf("[%s]\n", token);
 
     return 0;
 }
