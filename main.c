@@ -37,6 +37,8 @@ int main(int argc, char **argv)
 
     while (1)
         perform_connection(listen_socket);
+
+    return 0;
 }
 
 void print_client_address(struct sockaddr_in client_address)
@@ -57,6 +59,7 @@ void print_client_address(struct sockaddr_in client_address)
 
 void message_callback(char *message)
 {
+    bzero(callback_buffer, BUFSIZE);
     sprintf(callback_buffer, "%s", message);
     write(callback_socket, callback_buffer, strlen(callback_buffer));
 }

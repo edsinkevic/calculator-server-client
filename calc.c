@@ -33,6 +33,7 @@ int calculate(char *input, long *result, void (*message_callback)(char *message)
     result_status = pop(&stack, result);
 
     free_stack(&stack);
+    global_callback = NULL;
     return result_status;
 }
 
@@ -40,7 +41,8 @@ int isnumber(char *string)
 {
     int i = 0;
     int length = strlen(string);
-    if (length > 1 && string[0] == '-')
+    char is_probably_negative = length > 1 && string[0] == '-';
+    if (is_probably_negative)
         ++i;
 
     for (i; i < length; ++i)
@@ -70,11 +72,30 @@ long fadd(long a, long b)
         sprintf(message, "%ld + %ld\n", a, b);
         global_callback(message);
     }
-
     return a + b;
 }
-long fminus(long a, long b) { return a - b; }
-long ftimes(long a, long b) { return a * b; }
+
+long fminus(long a, long b)
+{
+    if (global_callback != NULL)
+    {
+        char message[BUFSIZE];
+        sprintf(message, "%ld - %ld\n", a, b);
+        global_callback(message);
+    }
+    return a - b;
+}
+
+long ftimes(long a, long b)
+{
+    if (global_callback != NULL)
+    {
+        char message[BUFSIZE];
+        sprintf(message, "%ld * %ld\n", a, b);
+        global_callback(message);
+    }
+    return a * b;
+}
 
 char *clean_token(char *s)
 {
@@ -95,7 +116,6 @@ char handle_token(Stack *stack, char *dirty_token)
 {
     char *token = clean_token(dirty_token);
     int token_length = strlen(token);
-
     printf("length: %d\n", token_length);
 
     if (isnumber(token) == 1)
@@ -116,7 +136,6 @@ char handle_token(Stack *stack, char *dirty_token)
     }
 
     printf("[%s]\n", token);
-
     free(token);
     return 1;
 }
