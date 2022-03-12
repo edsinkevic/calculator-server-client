@@ -9,18 +9,19 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
-#include "stack.h"
+#include "calc.h"
 
 #define BUFSIZE 1024
 #define QUEUE_SIZE 100
 #define PORT 9999
 
+int callback_socket;
+char callback_buffer[BUFSIZE];
+
 int create_socket();
 void error();
 struct sockaddr_in set_address(struct sockaddr_in server_address);
 void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
-int calculate(char *input, long *result);
-char handle_token(Stack *stack, char *token);
 void perform_connection(int listen_socket);
 
 int main(int argc, char **argv)
@@ -54,6 +55,12 @@ void print_client_address(struct sockaddr_in client_address)
     printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);
 }
 
+void message_callback(char *message)
+{
+    sprintf(callback_buffer, "%s", message);
+    write(callback_socket, callback_buffer, strlen(callback_buffer));
+}
+
 char check_connection_status(int socket_fd)
 {
     int error = 0;
@@ -65,15 +72,17 @@ char check_connection_status(int socket_fd)
 
 void perform_connection(int listen_socket)
 {
+    char input_buffer[BUFSIZE];
+    char output_buffer[BUFSIZE];
     int connection_socket = 0;
     struct sockaddr_in client_address;
     int address_length = sizeof(client_address);
-    char input_buffer[BUFSIZE];
-    char output_buffer[BUFSIZE];
 
     connection_socket = accept(listen_socket, (struct sockaddr *)&client_address, &address_length);
     if (connection_socket < 0)
         error();
+
+    callback_socket = connection_socket;
 
     char connection_status = 1;
     while (check_connection_status(connection_socket) < 1)
@@ -89,7 +98,7 @@ void perform_connection(int listen_socket)
         printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
 
         long calculation_result;
-        if (calculate(input_buffer, &calculation_result))
+        if (calculate(input_buffer, &calculation_result, &message_callback))
         {
             printf("-------- %ld --------\n", calculation_result);
             sprintf(output_buffer, "%ld\n", calculation_result);
@@ -125,8 +134,7 @@ void error()
     exit(1);
 }
 
-struct sockaddr_in
-set_address(struct sockaddr_in server_address)
+struct sockaddr_in set_address(struct sockaddr_in server_address)
 {
     bzero((char *)&server_address, sizeof(server_address));
     server_address.sin_family = AF_INET;
@@ -141,96 +149,4 @@ void bind_to_port(int listen_socket, struct sockaddr_in server_address)
         error();
     if (listen(listen_socket, QUEUE_SIZE) < 0)
         error();
-}
-
-int calculate(char *input, long *result)
-{
-    char result_status;
-    Stack stack = init();
-    char *token = strtok(input, " ");
-
-    while (token != NULL)
-    {
-        if (!handle_token(&stack, token))
-            return 0;
-        token = strtok(NULL, " ");
-    }
-
-    result_status = pop(&stack, result);
-
-    free_stack(&stack);
-    return result_status;
-}
-
-int isnumber(char *string)
-{
-    int i = 0;
-    int length = strlen(string);
-    if (length > 1 && string[0] == '-')
-        ++i;
-
-    for (i; i < length; ++i)
-        if (!isdigit(string[i]))
-            return 0;
-
-    return 1;
-}
-
-void bin_op_stack(Stack *stack, long (*f)(long, long))
-{
-    if (ssize(stack->head) >= 2)
-    {
-        printf("fart");
-        long popped_value1;
-        pop(stack, &popped_value1);
-        long popped_value2;
-        pop(stack, &popped_value2);
-        push(stack, (*f)(popped_value1, popped_value2));
-    }
-}
-
-long fadd(long a, long b) { return a + b; }
-long fminus(long a, long b) { return a - b; }
-long ftimes(long a, long b) { return a * b; }
-
-char *clean_token(char *s)
-{
-    int j, n = strlen(s);
-
-    char *accumulator = (char *)calloc(n, sizeof(char));
-
-    for (int i = j = 0; i < n; i++)
-        if (isalnum(s[i]) || s[i] == '-' || s[i] == '+' || s[i] == '*')
-            accumulator[j++] = s[i];
-
-    accumulator[j] = '\0';
-
-    return accumulator;
-}
-
-char handle_token(Stack *stack, char *dirty_token)
-{
-    char *token = clean_token(dirty_token);
-    int token_length = strlen(token);
-
-    printf("length: %d\n", token_length);
-
-    if (isnumber(token) == 1)
-        push(stack, atol(token));
-    else if (strncmp(token, "+", 1) == 0 && token_length == 1)
-        bin_op_stack(stack, &fadd);
-    else if (strncmp(token, "-", 1) == 0 && token_length == 1)
-        bin_op_stack(stack, &fminus);
-    else if (strncmp(token, "*", 1) == 0 && token_length == 1)
-        bin_op_stack(stack, &ftimes);
-    else
-    {
-        free(token);
-        return 0;
-    }
-
-    printf("[%s]\n", token);
-
-    free(token);
-    return 1;
 }
