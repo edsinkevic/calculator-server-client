@@ -9,7 +9,15 @@ Stack init()
     return s;
 }
 
-char push(Stack *s, int data)
+int ssize(struct element *stack_head)
+{
+    if (stack_head != NULL)
+        return 1 + ssize(stack_head->next);
+
+    return 0;
+}
+
+char push(Stack *s, stype data)
 {
     struct element *node = (struct element *)malloc(sizeof(struct element));
 
@@ -19,7 +27,7 @@ char push(Stack *s, int data)
     {
         node->data = data;
         node->next = (*s).head;
-        (*s).head = node;
+        s->head = node;
 
         return 1;
     }
@@ -37,13 +45,13 @@ char is_empty(Stack s)
     return s.head == NULL;
 }
 
-char pop(Stack *s, int *x)
+char pop(Stack *s, stype *x)
 {
 
     if ((*s).head != NULL)
     {
         struct element *temp_ptr = (*s).head;
-        int value = ((*s).head)->data;
+        stype value = ((*s).head)->data;
         (*s).head = ((*s).head)->next;
         free(temp_ptr);
         *x = value;

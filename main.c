@@ -19,7 +19,7 @@ int create_socket();
 void error();
 struct sockaddr_in set_address(struct sockaddr_in server_address);
 void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
-int calculate(char *input, int *result);
+int calculate(char *input, long *result);
 char handle_token(Stack *stack, char *token);
 void perform_connection(int listen_socket);
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
         perform_connection(listen_socket);
 }
 
-void get_client_address(struct sockaddr_in client_address)
+void print_client_address(struct sockaddr_in client_address)
 {
     struct hostent *hostp;
     char *hostaddrp;
@@ -54,42 +54,56 @@ void get_client_address(struct sockaddr_in client_address)
     printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);
 }
 
+char check_connection_status(int socket_fd)
+{
+    int error = 0;
+    socklen_t len = sizeof(error);
+    int retval = getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &error, &len);
+
+    return error;
+}
+
 void perform_connection(int listen_socket)
 {
     int connection_socket = 0;
     struct sockaddr_in client_address;
     int address_length = sizeof(client_address);
-
-    char buffer[BUFSIZE];
-    int n;
+    char input_buffer[BUFSIZE];
+    char output_buffer[BUFSIZE];
 
     connection_socket = accept(listen_socket, (struct sockaddr *)&client_address, &address_length);
     if (connection_socket < 0)
         error();
 
-    bzero(buffer, BUFSIZE);
-
-    n = read(connection_socket, buffer, BUFSIZE);
-
-    if (n < 0)
-        error();
-
-    get_client_address(client_address);
-
-    printf("Received %d bytes:\n%s", n, buffer);
-
-    int calculation_result;
-    if (calculate(buffer, &calculation_result))
+    char connection_status = 1;
+    while (check_connection_status(connection_socket) < 1)
     {
-        printf("-------- %d --------\n", calculation_result);
+        bzero(input_buffer, BUFSIZE);
+        bzero(output_buffer, BUFSIZE);
 
-        n = write(connection_socket, buffer, strlen(buffer));
-        if (n < 0)
+        int bytes_read_amount = read(connection_socket, input_buffer, BUFSIZE);
+        if (bytes_read_amount < 0)
             error();
-    }
-    else
-    {
-        printf("-------- CALCULATION FAILED/QUIT --------\n");
+
+        print_client_address(client_address);
+        printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
+
+        long calculation_result;
+        if (calculate(input_buffer, &calculation_result))
+        {
+            printf("-------- %ld --------\n", calculation_result);
+            sprintf(output_buffer, "%ld\n", calculation_result);
+            int bytes_written_amount = write(connection_socket, output_buffer, strlen(output_buffer));
+            if (bytes_written_amount < 0)
+                error();
+        }
+        else
+        {
+            sprintf(output_buffer, "FAIL\n");
+            if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
+                error();
+            printf("-------- CALCULATION FAILED/QUIT --------\n");
+        }
     }
 
     close(connection_socket);
@@ -129,18 +143,20 @@ void bind_to_port(int listen_socket, struct sockaddr_in server_address)
         error();
 }
 
-int calculate(char *input, int *result)
+int calculate(char *input, long *result)
 {
+    char result_status;
     Stack stack = init();
     char *token = strtok(input, " ");
 
     while (token != NULL)
     {
-        handle_token(&stack, token);
+        if (!handle_token(&stack, token))
+            return 0;
         token = strtok(NULL, " ");
     }
 
-    char result_status = pop(&stack, result);
+    result_status = pop(&stack, result);
 
     free_stack(&stack);
     return result_status;
@@ -148,43 +164,73 @@ int calculate(char *input, int *result)
 
 int isnumber(char *string)
 {
-    for (int i = 0; i < strlen(string); ++i)
-        if (isdigit(string[i]) == 0)
+    int i = 0;
+    int length = strlen(string);
+    if (length > 1 && string[0] == '-')
+        ++i;
+
+    for (i; i < length; ++i)
+        if (!isdigit(string[i]))
             return 0;
 
     return 1;
 }
 
-void bin_op_stack(Stack *stack, int (*f)(int, int))
+void bin_op_stack(Stack *stack, long (*f)(long, long))
 {
-    int popped_value1;
-    pop(stack, &popped_value1);
-    int popped_value2;
-    pop(stack, &popped_value2);
-
-    push(stack, (*f)(popped_value1, popped_value2));
+    if (ssize(stack->head) >= 2)
+    {
+        printf("fart");
+        long popped_value1;
+        pop(stack, &popped_value1);
+        long popped_value2;
+        pop(stack, &popped_value2);
+        push(stack, (*f)(popped_value1, popped_value2));
+    }
 }
 
-int fadd(int a, int b) { return a + b; }
-int fminus(int a, int b) { return a - b; }
-int ftimes(int a, int b) { return a * b; }
+long fadd(long a, long b) { return a + b; }
+long fminus(long a, long b) { return a - b; }
+long ftimes(long a, long b) { return a * b; }
 
-char handle_token(Stack *stack, char *token)
+char *clean_token(char *s)
 {
+    int j, n = strlen(s);
+
+    char *accumulator = (char *)calloc(n, sizeof(char));
+
+    for (int i = j = 0; i < n; i++)
+        if (isalnum(s[i]) || s[i] == '-' || s[i] == '+' || s[i] == '*')
+            accumulator[j++] = s[i];
+
+    accumulator[j] = '\0';
+
+    return accumulator;
+}
+
+char handle_token(Stack *stack, char *dirty_token)
+{
+    char *token = clean_token(dirty_token);
+    int token_length = strlen(token);
+
+    printf("length: %d\n", token_length);
+
     if (isnumber(token) == 1)
-        push(stack, atoi(token));
-    else if (strncmp(token, "+", 1) == 0)
+        push(stack, atol(token));
+    else if (strncmp(token, "+", 1) == 0 && token_length == 1)
         bin_op_stack(stack, &fadd);
-    else if (strncmp(token, "-", 1) == 0)
+    else if (strncmp(token, "-", 1) == 0 && token_length == 1)
         bin_op_stack(stack, &fminus);
-    else if (strncmp(token, "*", 1) == 0)
+    else if (strncmp(token, "*", 1) == 0 && token_length == 1)
         bin_op_stack(stack, &ftimes);
     else
     {
-        return 1;
+        free(token);
+        return 0;
     }
 
     printf("[%s]\n", token);
 
-    return 0;
+    free(token);
+    return 1;
 }
