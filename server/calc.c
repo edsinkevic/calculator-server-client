@@ -4,9 +4,9 @@
 #include <ctype.h>
 #include "stack.h"
 #include "calc.h"
+#include "edutils.h"
 int isnumber(const char *string);
 void bin_op_stack(Stack *stack, long (*f)(long, long));
-char *clean_token(char *s);
 long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
@@ -96,24 +96,14 @@ long ftimes(long a, long b)
     return a * b;
 }
 
-char *clean_token(char *s)
+char clean_predicate(char c)
 {
-    const int n = strlen(s);
-    char *accumulator = (char *)calloc(n, sizeof(char));
-
-    int j = 0;
-    for (int i = j = 0; i < n; i++)
-        if (isalnum(s[i]) || s[i] == '-' || s[i] == '+' || s[i] == '*')
-            accumulator[j++] = s[i];
-
-    accumulator[j] = '\0';
-
-    return accumulator;
+    return isalnum(c) || c == '-' || c == '+' || c == '*';
 }
 
 char handle_token(Stack *stack, char *dirty_token)
 {
-    const char *token = clean_token(dirty_token);
+    const char *token = clean_token(dirty_token, strlen(dirty_token), &clean_predicate);
     const int token_length = strlen(token);
 
     printf("length: %d\n", token_length);

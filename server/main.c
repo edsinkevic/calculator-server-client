@@ -22,7 +22,7 @@ int create_socket();
 void error();
 struct sockaddr_in set_address(int port, struct sockaddr_in);
 void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
-void perform_connection(int listen_socket);
+char perform_connection(int listen_socket);
 
 int main(int argc, char **argv)
 {
@@ -33,9 +33,11 @@ int main(int argc, char **argv)
     setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
     bind_to_port(listen_socket, server_address);
 
-    while (1)
-        perform_connection(listen_socket);
+    char quit = 0;
+    while (!quit)
+        quit = perform_connection(listen_socket);
 
+    close(listen_socket);
     return 0;
 }
 
@@ -69,7 +71,7 @@ char check_connection_status(int socket_fd)
     return error;
 }
 
-void perform_connection(const int listen_socket)
+char perform_connection(const int listen_socket)
 {
     char input_buffer[BUFSIZE];
     char output_buffer[BUFSIZE];
@@ -95,6 +97,9 @@ void perform_connection(const int listen_socket)
         print_client_address(client_address);
         printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
 
+        if (strncmp(input_buffer, "shutdown", 8) == 0)
+            return 1;
+
         if (calculate(input_buffer, &calculation_result, &message_callback))
         {
             printf("-------- %ld --------\n", calculation_result);
@@ -106,7 +111,7 @@ void perform_connection(const int listen_socket)
         }
         else
         {
-            sprintf(output_buffer, "FAIL\n");
+            printf(output_buffer, "What the hell is: %200s?\n", input_buffer);
             if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
                 error();
             printf("-------- CALCULATION FAILED/QUIT --------\n");
@@ -114,6 +119,8 @@ void perform_connection(const int listen_socket)
     }
 
     close(connection_socket);
+
+    return 0;
 }
 
 int create_socket()
