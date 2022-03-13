@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include "stack.h"
 #include "calc.h"
-int isnumber(char *string);
+int isnumber(const char *string);
 void bin_op_stack(Stack *stack, long (*f)(long, long));
 char *clean_token(char *s);
 long fadd(long a, long b);
@@ -19,7 +19,6 @@ void (*global_callback)(const char const *message) = NULL;
 int calculate(char *input, long *result, void (*message_callback)(const char const *message))
 {
     global_callback = message_callback;
-    char result_status;
     Stack stack = init();
     char *token = strtok(input, " ");
 
@@ -30,18 +29,18 @@ int calculate(char *input, long *result, void (*message_callback)(const char con
         token = strtok(NULL, " ");
     }
 
-    result_status = pop(&stack, result);
+    const char result_status = pop(&stack, result);
 
     free_stack(&stack);
     global_callback = NULL;
     return result_status;
 }
 
-int isnumber(char *string)
+int isnumber(const char *string)
 {
     int i = 0;
-    int length = strlen(string);
-    char is_probably_negative = length > 1 && string[0] == '-';
+    const int length = strlen(string);
+    const char is_probably_negative = length > 1 && string[0] == '-';
     if (is_probably_negative)
         ++i;
 
@@ -99,10 +98,10 @@ long ftimes(long a, long b)
 
 char *clean_token(char *s)
 {
-    int j;
-    int n = strlen(s);
+    const int n = strlen(s);
     char *accumulator = (char *)calloc(n, sizeof(char));
 
+    int j = 0;
     for (int i = j = 0; i < n; i++)
         if (isalnum(s[i]) || s[i] == '-' || s[i] == '+' || s[i] == '*')
             accumulator[j++] = s[i];
@@ -114,8 +113,9 @@ char *clean_token(char *s)
 
 char handle_token(Stack *stack, char *dirty_token)
 {
-    char *token = clean_token(dirty_token);
-    int token_length = strlen(token);
+    const char *token = clean_token(dirty_token);
+    const int token_length = strlen(token);
+
     printf("length: %d\n", token_length);
 
     if (isnumber(token) == 1)
@@ -131,11 +131,11 @@ char handle_token(Stack *stack, char *dirty_token)
     }
     else
     {
-        free(token);
+        free((void *)token);
         return 0;
     }
 
     printf("[%s]\n", token);
-    free(token);
+    free((void *)token);
     return 1;
 }
