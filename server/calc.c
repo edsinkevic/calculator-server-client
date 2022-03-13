@@ -14,9 +14,9 @@ char handle_token(Stack *stack, char *dirty_token);
 
 #define BUFSIZE 1024
 
-void (*global_callback)(char *message) = NULL;
+void (*global_callback)(const char const *message) = NULL;
 
-int calculate(char *input, long *result, void (*message_callback)(char *message))
+int calculate(char *input, long *result, void (*message_callback)(const char const *message))
 {
     global_callback = message_callback;
     char result_status;

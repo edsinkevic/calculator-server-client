@@ -20,19 +20,17 @@ char callback_buffer[BUFSIZE];
 
 int create_socket();
 void error();
-struct sockaddr_in set_address(struct sockaddr_in server_address);
+struct sockaddr_in set_address(int port, struct sockaddr_in);
 void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
 void perform_connection(int listen_socket);
 
 int main(int argc, char **argv)
 {
-    int listen_socket, optval = 1;
-    struct sockaddr_in server_address;
+    const int optval = 1;
+    const struct sockaddr_in server_address = set_address(PORT, server_address);
+    const int listen_socket = create_socket();
 
-    listen_socket = create_socket();
     setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
-
-    server_address = set_address(server_address);
     bind_to_port(listen_socket, server_address);
 
     while (1)
@@ -43,21 +41,19 @@ int main(int argc, char **argv)
 
 void print_client_address(struct sockaddr_in client_address)
 {
-    struct hostent *hostp;
-    char *hostaddrp;
-
-    hostp = gethostbyaddr((const char *)&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
+    const struct hostent const *hostp =
+        gethostbyaddr((const char *)&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
     if (hostp == NULL)
         error();
 
-    hostaddrp = inet_ntoa(client_address.sin_addr);
+    const char const *hostaddrp = inet_ntoa(client_address.sin_addr);
     if (hostaddrp == NULL)
         error();
 
     printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);
 }
 
-void message_callback(char *message)
+void message_callback(const char const *message)
 {
     bzero(callback_buffer, BUFSIZE);
     sprintf(callback_buffer, "%s", message);
@@ -73,39 +69,38 @@ char check_connection_status(int socket_fd)
     return error;
 }
 
-void perform_connection(int listen_socket)
+void perform_connection(const int listen_socket)
 {
     char input_buffer[BUFSIZE];
     char output_buffer[BUFSIZE];
-    int connection_socket = 0;
     struct sockaddr_in client_address;
     int address_length = sizeof(client_address);
+    long calculation_result;
 
-    connection_socket = accept(listen_socket, (struct sockaddr *)&client_address, &address_length);
+    const int connection_socket = accept(listen_socket, (struct sockaddr *)&client_address, &address_length);
     if (connection_socket < 0)
         error();
 
     callback_socket = connection_socket;
 
-    char connection_status = 1;
     while (check_connection_status(connection_socket) < 1)
     {
         bzero(input_buffer, BUFSIZE);
         bzero(output_buffer, BUFSIZE);
 
-        int bytes_read_amount = read(connection_socket, input_buffer, BUFSIZE);
+        const int bytes_read_amount = read(connection_socket, input_buffer, BUFSIZE);
         if (bytes_read_amount < 0)
             error();
 
         print_client_address(client_address);
         printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
 
-        long calculation_result;
         if (calculate(input_buffer, &calculation_result, &message_callback))
         {
             printf("-------- %ld --------\n", calculation_result);
             sprintf(output_buffer, "%ld\n", calculation_result);
-            int bytes_written_amount = write(connection_socket, output_buffer, strlen(output_buffer));
+
+            const int bytes_written_amount = write(connection_socket, output_buffer, strlen(output_buffer));
             if (bytes_written_amount < 0)
                 error();
         }
@@ -123,7 +118,7 @@ void perform_connection(int listen_socket)
 
 int create_socket()
 {
-    int lsocket = socket(AF_INET, SOCK_STREAM, 0);
+    const int lsocket = socket(AF_INET, SOCK_STREAM, 0);
 
     if (lsocket < 0)
         error();
@@ -137,7 +132,7 @@ void error()
     exit(1);
 }
 
-struct sockaddr_in set_address(struct sockaddr_in server_address)
+struct sockaddr_in set_address(int port, struct sockaddr_in server_address)
 {
     bzero((char *)&server_address, sizeof(server_address));
     server_address.sin_family = AF_INET;
