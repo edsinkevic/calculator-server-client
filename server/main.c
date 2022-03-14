@@ -111,10 +111,15 @@ char perform_connection(const int listen_socket, int *connection_socket_p)
         }
         else
         {
+            sprintf(output_buffer, "FAIL\n");
             if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
                 error();
         }
     }
+
+    sprintf(output_buffer, "QUITTING\n");
+    if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
+        error();
 
     return 0;
 }

@@ -58,11 +58,11 @@ void bin_op_stack(Stack *stack, long (*f)(long, long))
 {
     if (ssize(stack->head) >= 2)
     {
-        long popped_value1;
-        pop(stack, &popped_value1);
-        long popped_value2;
-        pop(stack, &popped_value2);
-        push(stack, (*f)(popped_value1, popped_value2));
+        long b;
+        pop(stack, &b);
+        long a;
+        pop(stack, &a);
+        push(stack, (*f)(a, b));
     }
 }
 
