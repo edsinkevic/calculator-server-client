@@ -19,7 +19,6 @@ int main(int argc, char const *argv[])
     const int length = sizeof(server_address);
 
     const char *server_ip = "127.0.0.1";
-
     bzero(&server_address, length);
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = inet_addr(server_ip);
@@ -30,7 +29,10 @@ int main(int argc, char const *argv[])
     while (1)
     {
         bzero(input_buffer, BUFSIZE);
-        fgets(input_buffer, BUFSIZE, stdin);
+        if (fgets(input_buffer, BUFSIZE, stdin) == NULL)
+        {
+            break;
+        }
         write(server_socket, input_buffer, BUFSIZE);
 
         bzero(output_buffer, BUFSIZE);
@@ -38,8 +40,7 @@ int main(int argc, char const *argv[])
         printf("%s", output_buffer);
     }
 
-    bzero(input_buffer, BUFSIZE);
-    fgets(input_buffer, BUFSIZE, stdin);
-    write(server_socket, input_buffer, BUFSIZE);
     close(server_socket);
+
+    return 0;
 }

@@ -14,9 +14,14 @@ char handle_token(Stack *stack, char *dirty_token);
 
 void (*global_callback)(const char const *message) = NULL;
 
-int calculate(char *input, long *result, void (*message_callback)(const char const *message))
+int calculate(char *unprocessed_input, long *result, void (*message_callback)(const char const *message))
 {
     global_callback = message_callback;
+
+    char input[BUFSIZE];
+    bzero(input, BUFSIZE);
+    strcpy(input, unprocessed_input);
+
     Stack stack = init();
     char *token = strtok(input, " ");
 
@@ -104,8 +109,6 @@ char handle_token(Stack *stack, char *dirty_token)
     const char *token = clean_token(dirty_token, strlen(dirty_token), &clean_predicate);
     const int token_length = strlen(token);
 
-    printf("length: %d\n", token_length);
-
     if (isnumber(token) == 1)
         push(stack, atol(token));
     else if (token_length == 1)
@@ -123,7 +126,6 @@ char handle_token(Stack *stack, char *dirty_token)
         return 0;
     }
 
-    printf("[%s]\n", token);
     free((void *)token);
     return 1;
 }
