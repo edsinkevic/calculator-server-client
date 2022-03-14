@@ -27,7 +27,7 @@ int main(int argc, char const *argv[])
 
     connect(server_socket, (const struct sockaddr *)&server_address, length);
 
-    while (check_connection_status(server_socket) == 0)
+    while (1)
     {
         bzero(input_buffer, BUFSIZE);
         fgets(input_buffer, BUFSIZE, stdin);
@@ -38,5 +38,8 @@ int main(int argc, char const *argv[])
         printf("%s", output_buffer);
     }
 
+    bzero(input_buffer, BUFSIZE);
+    fgets(input_buffer, BUFSIZE, stdin);
+    write(server_socket, input_buffer, BUFSIZE);
     close(server_socket);
 }

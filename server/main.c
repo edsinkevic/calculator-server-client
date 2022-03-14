@@ -13,7 +13,7 @@
 #include "../edutils.h"
 
 #define BUFSIZE 1024
-#define QUEUE_SIZE 100
+#define QUEUE_SIZE 0
 #define PORT 9999
 
 int callback_socket;
@@ -76,18 +76,21 @@ char perform_connection(const int listen_socket)
 
     callback_socket = connection_socket;
 
-    while (check_connection_status(connection_socket) < 1)
+    while (check_connection_status(listen_socket))
     {
         bzero(input_buffer, BUFSIZE);
         bzero(output_buffer, BUFSIZE);
         bzero(callback_buffer, BUFSIZE);
 
         const int bytes_read_amount = read(connection_socket, input_buffer, BUFSIZE);
-        if (bytes_read_amount < 0)
+
+        if (bytes_read_amount == 0)
+            return 0;
+        if (bytes_read_amount == -1)
             error();
 
         print_client_address(client_address);
-        // printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
+        //  printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
 
         if (strncmp(input_buffer, "shutdown", 8) == 0)
             return 1;

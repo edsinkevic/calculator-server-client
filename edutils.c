@@ -19,9 +19,7 @@ char *clean_token(char *s, const int slen, char (*predicate)(const char))
 
 char check_connection_status(int socket_fd)
 {
-    int error = 0;
-    socklen_t len = sizeof(error);
-    int retval = getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &error, &len);
-
-    return error;
+    const int bufsize = 1024;
+    char *test_buffer[bufsize];
+    return recv(socket_fd, test_buffer, bufsize, MSG_PEEK) != 0;
 }
