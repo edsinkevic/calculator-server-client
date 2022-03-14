@@ -1,6 +1,7 @@
-#ifndef STACK_H_INCLUDED
-#define STACK_H_INCLUDED
-
-int calculate(const char const *input, long const *result, void (*message_callback)(const char const *message));
+#ifndef CALC_H_INCLUDED
+#define CALC_H_INCLUDED
+#include "stack.h"
+#include "../edutils.h"
+int calculate(char *input, long *result, void (*message_callback)(const char const *message));
 
 #endif

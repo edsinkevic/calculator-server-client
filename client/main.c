@@ -3,6 +3,8 @@
 #include <unistd.h>    // write, read, close
 #include <arpa/inet.h> // sockaddr_in, AF_INET, SOCK_STREAM, INADDR_ANY, socket etc...
 #include <string.h>    // strlen, memset
+#include <sys/ioctl.h>
+#include "../edutils.h"
 
 #define PORT 9999
 #define BUFSIZE 1024
@@ -25,11 +27,16 @@ int main(int argc, char const *argv[])
 
     connect(server_socket, (const struct sockaddr *)&server_address, length);
 
-    for (;;)
+    while (check_connection_status(server_socket) == 0)
     {
-        scanf("%s", output_buffer);
-        write(server_socket, output_buffer, BUFSIZE);
-        read(server_socket, input_buffer, BUFSIZE);
-        printf("%s", input_buffer);
+        bzero(input_buffer, BUFSIZE);
+        fgets(input_buffer, BUFSIZE, stdin);
+        write(server_socket, input_buffer, BUFSIZE);
+
+        bzero(output_buffer, BUFSIZE);
+        read(server_socket, output_buffer, BUFSIZE);
+        printf("%s", output_buffer);
     }
+
+    close(server_socket);
 }

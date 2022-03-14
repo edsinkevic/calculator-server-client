@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "stack.h"
 #include "calc.h"
-#include "edutils.h"
 int isnumber(const char *string);
 void bin_op_stack(Stack *stack, long (*f)(long, long));
 long fadd(long a, long b);

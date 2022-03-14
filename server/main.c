@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <ctype.h>
 #include "calc.h"
+#include "../edutils.h"
 
 #define BUFSIZE 1024
 #define QUEUE_SIZE 100
@@ -17,6 +18,7 @@
 
 int callback_socket;
 char callback_buffer[BUFSIZE];
+char output_buffer[BUFSIZE];
 
 int create_socket();
 void error();
@@ -57,18 +59,7 @@ void print_client_address(struct sockaddr_in client_address)
 
 void message_callback(const char const *message)
 {
-    bzero(callback_buffer, BUFSIZE);
-    sprintf(callback_buffer, "%s", message);
-    write(callback_socket, callback_buffer, strlen(callback_buffer));
-}
-
-char check_connection_status(int socket_fd)
-{
-    int error = 0;
-    socklen_t len = sizeof(error);
-    int retval = getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &error, &len);
-
-    return error;
+    sprintf(callback_buffer, "%s%s", callback_buffer, message);
 }
 
 char perform_connection(const int listen_socket)
@@ -89,21 +80,22 @@ char perform_connection(const int listen_socket)
     {
         bzero(input_buffer, BUFSIZE);
         bzero(output_buffer, BUFSIZE);
+        bzero(callback_buffer, BUFSIZE);
 
         const int bytes_read_amount = read(connection_socket, input_buffer, BUFSIZE);
         if (bytes_read_amount < 0)
             error();
 
         print_client_address(client_address);
-        printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
+        // printf("Received %d bytes:\n%s", bytes_read_amount, input_buffer);
 
         if (strncmp(input_buffer, "shutdown", 8) == 0)
             return 1;
 
         if (calculate(input_buffer, &calculation_result, &message_callback))
         {
-            printf("-------- %ld --------\n", calculation_result);
-            sprintf(output_buffer, "%ld\n", calculation_result);
+            // printf("-------- %ld --------\n", calculation_result);
+            sprintf(output_buffer, "%s%ld\n", callback_buffer, calculation_result);
 
             const int bytes_written_amount = write(connection_socket, output_buffer, strlen(output_buffer));
             if (bytes_written_amount < 0)
@@ -111,10 +103,10 @@ char perform_connection(const int listen_socket)
         }
         else
         {
-            printf(output_buffer, "What the hell is: %200s?\n", input_buffer);
+            // printf(output_buffer, "What the hell is: %200s?\n", input_buffer);
             if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
                 error();
-            printf("-------- CALCULATION FAILED/QUIT --------\n");
+            // printf("-------- CALCULATION FAILED/QUIT --------\n");
         }
     }
 
