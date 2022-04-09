@@ -10,12 +10,25 @@ long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
 char handle_token(Stack *stack, char *dirty_token);
-char handle_parens(char *tok, long *res_ptr, char *strtok_save);
+char handle_parens(char *tok, long *res_ptr);
 char cpred(char c);
 
 #define BUFSIZE 1024
 
 void (*EXT_CALLBACK)(const char const *message) = NULL;
+
+void print_stack(Stack st)
+{
+    struct element *head = st.head;
+    printf("Printing what's left in stack:\n");
+    while (head != NULL)
+    {
+        printf("%d\n", (int)head->data);
+        head = head->next;
+    }
+
+    printf("    End.\n");
+}
 
 int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const char const *message))
 {
@@ -25,37 +38,36 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     bzero(input, BUFSIZE);
     strcpy(input, unprocessed_input);
 
-    char *save;
-
     Stack st = init();
-    char *tok = strtok_r(input, " ", &save);
+    char *tok = strtok(input, " ");
 
     while (tok != NULL)
     {
         if (strlen(tok) >= 1 && tok[0] == '(')
         {
             long res = 0;
-            if (handle_parens(tok, &res, save))
+            if (handle_parens(tok, &res))
                 push(&st, res);
         }
         else if (!handle_token(&st, tok))
             return 0;
-        tok = strtok_r(NULL, " ", &save);
+        tok = strtok(NULL, " ");
     }
 
     const char result_status = pop(&st, result);
 
+    print_stack(st);
     free_stack(&st);
     EXT_CALLBACK = NULL;
     return result_status;
 }
 
-char handle_parens(char *tok, long *res_ptr, char *strtok_save)
+char handle_parens(char *tok, long *res_ptr)
 {
     if (strlen(tok) != 1 || tok[0] != '(')
         return 0;
 
-    tok = strtok_r(NULL, " ", &strtok_save);
+    tok = strtok(NULL, " ");
 
     char status = 0;
     int parsize = 0;
@@ -86,7 +98,7 @@ char handle_parens(char *tok, long *res_ptr, char *strtok_save)
         parsize += strlen(ctok) + 1;
         toks[i] = ctok;
 
-        tok = strtok_r(NULL, " ", &strtok_save);
+        tok = strtok(NULL, " ");
     }
 
     for (int j = 0; j < i; ++j)
