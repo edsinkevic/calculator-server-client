@@ -10,7 +10,7 @@ long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
 char handle_token(Stack *stack, char *dirty_token);
-char handle_parens(char *tok, long *res_ptr, char **strtok_save);
+char handle_parens(char *tok, long *res_ptr);
 char cpred(char c);
 
 #define BUFSIZE 1024
@@ -38,81 +38,72 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     bzero(input, BUFSIZE);
     strcpy(input, unprocessed_input);
 
-    char *save;
-
     Stack st = init();
-    char *tok = strtok_r(input, " ", &save);
+    char *tok = strtok(input, " ");
 
     while (tok != NULL)
     {
         if (strlen(tok) >= 1 && tok[0] == '(')
         {
             long res = 0;
-            if (handle_parens(tok, &res, &save))
+            if (handle_parens(tok, &res))
                 push(&st, res);
         }
         else if (!handle_token(&st, tok))
             return 0;
-        tok = strtok_r(NULL, " ", &save);
+        tok = strtok(NULL, " ");
     }
 
     const char result_status = pop(&st, result);
 
     print_stack(st);
-
     free_stack(&st);
     EXT_CALLBACK = NULL;
     return result_status;
 }
 
-char handle_parens(char *t, long *res_ptr, char **strtok_save)
+char handle_parens(char *tok, long *res_ptr)
 {
-    if (strlen(t) != 1 || t[0] != '(')
+    if (strlen(tok) != 1 || tok[0] != '(')
         return 0;
 
-    t = strtok_r(NULL, " ", strtok_save);
-    int open_parens_count = 1;
+    tok = strtok(NULL, " ");
+
     char status = 0;
     int parsize = 0;
     int lsize = 10;
-    char **tarr = (char **)calloc(lsize, sizeof(char *));
+    char **toks = (char **)calloc(lsize, sizeof(char *));
 
     int i = 0;
-    for (; t; ++i)
+    for (; tok != NULL; ++i)
     {
-        char *ctok = clean_token(t, strlen(t), &cpred);
-        if (strlen(ctok) == 1 && ctok[0] == ')' && open_parens_count == 1)
+        char *ctok = clean_token(tok, strlen(tok), &cpred);
+        if (strlen(ctok) == 1 && ctok[0] == ')')
         {
             status = 1;
             char *rbuf = (char *)calloc(parsize, sizeof(char));
             for (int j = 0; j < i; ++j)
-                sprintf(rbuf, "%s %s", rbuf, tarr[j]);
-
-            printf("[%s]", rbuf);
+                sprintf(rbuf, "%s %s", rbuf, toks[j]);
 
             calculate(rbuf, res_ptr, EXT_CALLBACK);
             free(rbuf);
             break;
         }
-        else if (strlen(ctok) == 1 && ctok[0] == ')')
-            open_parens_count--;
-        else if (strlen(ctok) == 1 && ctok[0] == '(')
-            open_parens_count++;
 
         if (i >= lsize)
         {
             lsize *= 2;
-            tarr = (char **)realloc(tarr, sizeof(char *) * lsize);
+            toks = (char **)realloc(toks, sizeof(char *) * lsize);
         }
         parsize += strlen(ctok) + 1;
-        tarr[i] = ctok;
+        toks[i] = ctok;
 
-        t = strtok_r(NULL, " ", strtok_save);
+        tok = strtok(NULL, " ");
     }
 
     for (int j = 0; j < i; ++j)
-        free(tarr[j]);
-    free(tarr);
+        free(toks[j]);
+    free(toks);
 
     return status;
 }
