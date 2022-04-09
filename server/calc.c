@@ -10,6 +10,7 @@ long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
 char handle_token(Stack *stack, char *dirty_token);
+char handle_parens(char *tok, long *res_ptr, char *strtok_save);
 char cpred(char c);
 
 #define BUFSIZE 1024
@@ -24,22 +25,90 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     bzero(input, BUFSIZE);
     strcpy(input, unprocessed_input);
 
-    Stack st = sinit();
-    char *tok = strtok(input, " ");
+    char *save;
+
+    Stack st = init();
+    char *tok = strtok_r(input, " ", &save);
 
     while (tok != NULL)
     {
-        if (!handle_token(&st, tok))
+        if (strlen(tok) >= 1 && tok[0] == '(')
+        {
+            long res = 0;
+            if (handle_parens(tok, &res, save))
+                push(&st, res);
+        }
+        else if (!handle_token(&st, tok))
             return 0;
-        tok = strtok(NULL, " ");
+        tok = strtok_r(NULL, " ", &save);
     }
 
-    const char result_status = spop(&st, result);
+    const char result_status = pop(&st, result);
 
-    sprint(st);
-    sfree(&st);
+    free_stack(&st);
     EXT_CALLBACK = NULL;
     return result_status;
+}
+
+char handle_parens(char *tok, long *res_ptr, char *strtok_save)
+{
+    if (strlen(tok) != 1 || tok[0] != '(')
+        return 0;
+
+    tok = strtok_r(NULL, " ", &strtok_save);
+
+    char status = 0;
+    int parsize = 0;
+    int lsize = 10;
+    char **toks = (char **)calloc(lsize, sizeof(char *));
+
+    int i = 0;
+    for (; tok != NULL; ++i)
+    {
+        char *ctok = clean_token(tok, strlen(tok), &cpred);
+        if (strlen(ctok) == 1 && ctok[0] == ')')
+        {
+            status = 1;
+            char *rbuf = (char *)calloc(parsize, sizeof(char));
+            for (int j = 0; j < i; ++j)
+                sprintf(rbuf, "%s %s", rbuf, toks[j]);
+
+            calculate(rbuf, res_ptr, EXT_CALLBACK);
+            free(rbuf);
+            break;
+        }
+
+        if (i >= lsize)
+        {
+            lsize *= 2;
+            toks = (char **)realloc(toks, sizeof(char *) * lsize);
+        }
+        parsize += strlen(ctok) + 1;
+        toks[i] = ctok;
+
+        tok = strtok_r(NULL, " ", &strtok_save);
+    }
+
+    for (int j = 0; j < i; ++j)
+        free(toks[j]);
+    free(toks);
+
+    return status;
+}
+
+int isnumber(const char *string)
+{
+    int i = 0;
+    const int l = strlen(string);
+    const char isneg = l > 1 && string[0] == '-';
+    if (isneg)
+        ++i;
+
+    for (i; i < l; ++i)
+        if (!isdigit(string[i]))
+            return 0;
+
+    return 1;
 }
 
 void bin_op_stack(Stack *st, long (*f)(long, long))
@@ -47,10 +116,10 @@ void bin_op_stack(Stack *st, long (*f)(long, long))
     if (ssize(st->head) >= 2)
     {
         long b;
-        spop(st, &b);
+        pop(st, &b);
         long a;
-        spop(st, &a);
-        spush(st, (*f)(a, b));
+        pop(st, &a);
+        push(st, (*f)(a, b));
     }
 }
 
@@ -87,21 +156,6 @@ long ftimes(long a, long b)
     return a * b;
 }
 
-int isnumber(const char *string)
-{
-    int i = 0;
-    const int l = strlen(string);
-    const char isneg = l > 1 && string[0] == '-';
-    if (isneg)
-        ++i;
-
-    for (i; i < l; ++i)
-        if (!isdigit(string[i]))
-            return 0;
-
-    return 1;
-}
-
 char cpred(char c)
 {
     return isalnum(c) || c == '-' || c == '+' || c == '*' || c == '(' || c == ')';
@@ -111,10 +165,9 @@ char handle_token(Stack *st, char *dirty_token)
 {
     const char *t = clean_token(dirty_token, strlen(dirty_token), &cpred);
     const int tlen = strlen(t);
-    char status = 1;
 
     if (isnumber(t) == 1)
-        spush(st, atol(t));
+        push(st, atol(t));
     else if (tlen == 1)
     {
         if (t[0] == '+')
@@ -123,12 +176,13 @@ char handle_token(Stack *st, char *dirty_token)
             bin_op_stack(st, &fminus);
         else if (t[0] == '*')
             bin_op_stack(st, &ftimes);
-        else
-            status = 0;
     }
     else
-        status = 0;
+    {
+        free((void *)t);
+        return 0;
+    }
 
     free((void *)t);
-    return status;
+    return 1;
 }
