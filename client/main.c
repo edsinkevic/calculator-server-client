@@ -1,8 +1,8 @@
-#include <stdio.h>     // perror, printf
-#include <stdlib.h>    // exit, atoi
-#include <unistd.h>    // write, read, close
-#include <arpa/inet.h> // sockaddr_in, AF_INET, SOCK_STREAM, INADDR_ANY, socket etc...
-#include <string.h>    // strlen, memset
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include "../edutils.h"
 
@@ -11,36 +11,39 @@
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in server_address;
-    char output_buffer[BUFSIZE];
-    char input_buffer[BUFSIZE];
+    struct sockaddr_in saddr;
+    char obuf[BUFSIZE];
+    char ibuf[BUFSIZE];
 
-    const int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    const int length = sizeof(server_address);
+    const int cs = socket(AF_INET, SOCK_STREAM, 0);
+    const int l = sizeof(saddr);
+    const char *ip = "127.0.0.1";
 
-    const char *server_ip = "127.0.0.1";
-    bzero(&server_address, length);
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr(server_ip);
-    server_address.sin_port = htons(PORT);
+    bzero(&saddr, l);
+    saddr.sin_family = AF_INET;
+    saddr.sin_addr.s_addr = inet_addr(ip);
+    saddr.sin_port = htons(PORT);
 
-    connect(server_socket, (const struct sockaddr *)&server_address, length);
+    connect(cs, (const struct sockaddr *)&saddr, l);
 
     while (1)
     {
-        bzero(input_buffer, BUFSIZE);
-        if (fgets(input_buffer, BUFSIZE, stdin) == NULL)
-        {
+        printf("------------------------------------------\n");
+        bzero(ibuf, BUFSIZE);
+        if (fgets(ibuf, BUFSIZE, stdin) == NULL)
             break;
-        }
-        write(server_socket, input_buffer, BUFSIZE);
 
-        bzero(output_buffer, BUFSIZE);
-        read(server_socket, output_buffer, BUFSIZE);
-        printf("%s", output_buffer);
+        if (write(cs, ibuf, BUFSIZE) <= 0)
+            break;
+
+        bzero(obuf, BUFSIZE);
+        if (read(cs, obuf, BUFSIZE) <= 0)
+            break;
+
+        printf("%s", obuf);
     }
 
-    close(server_socket);
+    close(cs);
 
     return 0;
 }

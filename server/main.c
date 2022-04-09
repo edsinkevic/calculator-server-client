@@ -18,34 +18,36 @@
 #define QUEUE_SIZE 0
 #define PORT 9999
 
-char callback_buffer[CALLBACK_SIZE];
+char CALLBACK_BUFFER[CALLBACK_SIZE];
 
 int create_socket();
 void error();
-struct sockaddr_in set_address(int port);
+struct sockaddr_in get_address(int port);
 void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
 char perform_connection(int listen_socket, int *);
 
 int main(int argc, char **argv)
 {
-    const struct sockaddr_in server_address = set_address(PORT);
-    const int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (listen_socket < 0)
+    const int ls = socket(AF_INET, SOCK_STREAM, 0);
+    if (ls < 0)
         error();
+
+    const struct sockaddr_in saddr = get_address(PORT);
+
     const int optval = 1;
-    setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
+    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
 
-    if (bind(listen_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
+    if (bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)) < 0)
         error();
-    if (listen(listen_socket, QUEUE_SIZE) < 0)
+    if (listen(ls, QUEUE_SIZE) < 0)
         error();
 
-    int connection_socket = -1;
-    for (char quit = 0; !quit; quit = perform_connection(listen_socket, &connection_socket))
+    int cs = -1;
+    for (char q = 0; !q; q = perform_connection(ls, &cs))
         ;
 
-    close(listen_socket);
-    close(connection_socket);
+    close(ls);
+    close(cs);
     return 0;
 }
 
@@ -65,60 +67,59 @@ void print_client_address(struct sockaddr_in client_address)
 
 void message_callback(const char const *message)
 {
-    sprintf(callback_buffer, "%s%s", callback_buffer, message);
+    sprintf(CALLBACK_BUFFER, "%s%s", CALLBACK_BUFFER, message);
 }
 
 char perform_connection(const int listen_socket, int *connection_socket_p)
 {
-    char input_buffer[INPUT_SIZE];
-    char output_buffer[OUTPUT_SIZE];
-    struct sockaddr_in client_address;
-    int address_length = sizeof(client_address);
+    char ibuf[INPUT_SIZE];
+    char obuf[OUTPUT_SIZE];
+    struct sockaddr_in caddr;
+    int addrlen = sizeof(caddr);
 
-    *connection_socket_p = accept(listen_socket, (struct sockaddr *)&client_address, &address_length);
-    const int connection_socket = *connection_socket_p;
-    if (connection_socket < 0)
+    *connection_socket_p = accept(listen_socket, (struct sockaddr *)&caddr, &addrlen);
+    const int cs = *connection_socket_p;
+    if (cs < 0)
         error();
 
-    while (check_connection_status(connection_socket))
+    while (check_connection_status(cs))
     {
-        bzero(input_buffer, INPUT_SIZE);
-        bzero(output_buffer, OUTPUT_SIZE);
-        bzero(callback_buffer, CALLBACK_SIZE);
+        bzero(ibuf, INPUT_SIZE);
+        bzero(obuf, OUTPUT_SIZE);
+        bzero(CALLBACK_BUFFER, CALLBACK_SIZE);
 
-        const int bytes_read_amount = read(connection_socket, input_buffer, INPUT_SIZE);
-        if (bytes_read_amount == 0)
+        const int n = read(cs, ibuf, INPUT_SIZE);
+        if (n == 0)
             return 0;
-        if (bytes_read_amount < 0)
+        if (n < 0)
             error();
 
-        if (strncmp(input_buffer, "shutdown", 8) == 0)
+        if (strncmp(ibuf, "shutdown", 8) == 0)
             return 1;
 
-        print_client_address(client_address);
+        print_client_address(caddr);
 
-        long calculation_result = 0;
-        if (calculate(input_buffer, &calculation_result, &message_callback))
+        long res = 0;
+        if (calculate(ibuf, &res, &message_callback))
         {
+            printf("%s", ibuf);
+            printf("%ld\n", res);
+            sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
 
-            printf("%s", input_buffer);
-            printf("%ld\n", calculation_result);
-            sprintf(output_buffer, "%s%ld\n", callback_buffer, calculation_result);
-
-            const int bytes_written_amount = write(connection_socket, output_buffer, strlen(output_buffer));
-            if (bytes_written_amount < 0)
+            const int n = write(cs, obuf, strlen(obuf));
+            if (n < 0)
                 error();
         }
         else
         {
-            sprintf(output_buffer, "FAIL\n");
-            if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
+            sprintf(obuf, "FAIL\n");
+            if (write(cs, obuf, strlen(obuf)) < 0)
                 error();
         }
     }
 
-    sprintf(output_buffer, "QUITTING\n");
-    if (write(connection_socket, output_buffer, strlen(output_buffer)) < 0)
+    sprintf(obuf, "QUITTING\n");
+    if (write(cs, obuf, strlen(obuf)) < 0)
         error();
 
     return 0;
@@ -130,7 +131,7 @@ void error()
     exit(1);
 }
 
-struct sockaddr_in set_address(int port)
+struct sockaddr_in get_address(int port)
 {
     struct sockaddr_in server_address;
     bzero((char *)&server_address, sizeof(server_address));
