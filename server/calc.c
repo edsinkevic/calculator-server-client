@@ -38,10 +38,8 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     bzero(input, BUFSIZE);
     strcpy(input, unprocessed_input);
 
-    char *save;
-
     Stack st = init();
-    char *tok = strtok_r(input, " ", &save);
+    char *tok = strtok(input, " ");
 
     while (tok != NULL)
     {
@@ -53,18 +51,16 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
         }
         else if (!handle_token(&st, tok))
             return 0;
-        tok = strtok_r(NULL, " ", &save);
+        tok = strtok(NULL, " ");
     }
 
     const char result_status = pop(&st, result);
 
     print_stack(st);
-
     free_stack(&st);
     EXT_CALLBACK = NULL;
     return result_status;
 }
-
 char handle_parens(char *t, long *res_ptr, char **strtok_save)
 {
     if (strlen(t) != 1 || t[0] != '(')
@@ -106,7 +102,6 @@ char handle_parens(char *t, long *res_ptr, char **strtok_save)
         }
         parsize += strlen(ctok) + 1;
         tarr[i] = ctok;
-
         t = strtok_r(NULL, " ", strtok_save);
     }
 
