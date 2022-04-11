@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "stack.h"
 
-Stack init()
+Stack sinit()
 {
     Stack s;
     s.head = NULL;
@@ -17,7 +17,7 @@ int ssize(struct element *stack_head)
     return 0;
 }
 
-char push(Stack *s, stype data)
+char spush(Stack *s, stype data)
 {
     struct element *node = (struct element *)malloc(sizeof(struct element));
 
@@ -33,19 +33,19 @@ char push(Stack *s, stype data)
     }
 }
 
-char is_full(Stack *s)
+char sfull(Stack *s)
 {
     struct element *node = (struct element *)malloc(sizeof(struct element));
     free(node);
     return node == NULL;
 }
 
-char is_empty(Stack s)
+char sempty(Stack s)
 {
     return s.head == NULL;
 }
 
-char pop(Stack *s, stype *x)
+char spop(Stack *s, stype *x)
 {
 
     if ((*s).head != NULL)
@@ -63,7 +63,7 @@ char pop(Stack *s, stype *x)
     }
 }
 
-void free_stack(Stack *s)
+void sfree(Stack *s)
 {
     struct element *temp_ptr;
 
@@ -73,4 +73,17 @@ void free_stack(Stack *s)
         (*s).head = ((*s).head)->next;
         free(temp_ptr);
     }
+}
+
+void sprint(Stack st)
+{
+    struct element *head = st.head;
+    printf("Printing what's left in stack:\n");
+    while (head != NULL)
+    {
+        printf("%d\n", (int)head->data);
+        head = head->next;
+    }
+
+    printf("    End.\n");
 }

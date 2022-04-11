@@ -3,129 +3,132 @@
 #include <string.h>
 #include <ctype.h>
 #include "calc.h"
+#include "stack.h"
 int isnumber(const char *string);
 void bin_op_stack(Stack *stack, long (*f)(long, long));
 long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
 char handle_token(Stack *stack, char *dirty_token);
+char cpred(char c);
 
 #define BUFSIZE 1024
 
-void (*global_callback)(const char const *message) = NULL;
+void (*EXT_CALLBACK)(const char const *message) = NULL;
 
-int calculate(char *unprocessed_input, long *result, void (*message_callback)(const char const *message))
+int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const char const *message))
 {
-    global_callback = message_callback;
+    EXT_CALLBACK = MSG_CALLBACK;
 
     char input[BUFSIZE];
     bzero(input, BUFSIZE);
     strcpy(input, unprocessed_input);
 
-    Stack stack = init();
-    char *token = strtok(input, " ");
+    Stack st = sinit();
+    char *tok = strtok(input, " ");
 
-    while (token != NULL)
+    while (tok != NULL)
     {
-        if (!handle_token(&stack, token))
+        if (!handle_token(&st, tok))
             return 0;
-        token = strtok(NULL, " ");
+        tok = strtok(NULL, " ");
     }
 
-    const char result_status = pop(&stack, result);
+    const char result_status = spop(&st, result);
 
-    free_stack(&stack);
-    global_callback = NULL;
+    sprint(st);
+    sfree(&st);
+    EXT_CALLBACK = NULL;
     return result_status;
 }
 
-int isnumber(const char *string)
+void bin_op_stack(Stack *st, long (*f)(long, long))
 {
-    int i = 0;
-    const int length = strlen(string);
-    const char is_probably_negative = length > 1 && string[0] == '-';
-    if (is_probably_negative)
-        ++i;
-
-    for (i; i < length; ++i)
-        if (!isdigit(string[i]))
-            return 0;
-
-    return 1;
-}
-
-void bin_op_stack(Stack *stack, long (*f)(long, long))
-{
-    if (ssize(stack->head) >= 2)
+    if (ssize(st->head) >= 2)
     {
         long b;
-        pop(stack, &b);
+        spop(st, &b);
         long a;
-        pop(stack, &a);
-        push(stack, (*f)(a, b));
+        spop(st, &a);
+        spush(st, (*f)(a, b));
     }
 }
 
 long fadd(long a, long b)
 {
-    if (global_callback != NULL)
+    if (EXT_CALLBACK != NULL)
     {
         char message[BUFSIZE];
         sprintf(message, "%ld + %ld\n", a, b);
-        global_callback(message);
+        EXT_CALLBACK(message);
     }
     return a + b;
 }
 
 long fminus(long a, long b)
 {
-    if (global_callback != NULL)
+    if (EXT_CALLBACK != NULL)
     {
         char message[BUFSIZE];
         sprintf(message, "%ld - %ld\n", a, b);
-        global_callback(message);
+        EXT_CALLBACK(message);
     }
     return a - b;
 }
 
 long ftimes(long a, long b)
 {
-    if (global_callback != NULL)
+    if (EXT_CALLBACK != NULL)
     {
         char message[BUFSIZE];
         sprintf(message, "%ld * %ld\n", a, b);
-        global_callback(message);
+        EXT_CALLBACK(message);
     }
     return a * b;
 }
 
-char clean_predicate(char c)
+int isnumber(const char *string)
 {
-    return isalnum(c) || c == '-' || c == '+' || c == '*';
+    int i = 0;
+    const int l = strlen(string);
+    const char isneg = l > 1 && string[0] == '-';
+    if (isneg)
+        ++i;
+
+    for (i; i < l; ++i)
+        if (!isdigit(string[i]))
+            return 0;
+
+    return 1;
 }
 
-char handle_token(Stack *stack, char *dirty_token)
+char cpred(char c)
 {
-    const char *token = clean_token(dirty_token, strlen(dirty_token), &clean_predicate);
-    const int token_length = strlen(token);
+    return isalnum(c) || c == '-' || c == '+' || c == '*' || c == '(' || c == ')';
+}
 
-    if (isnumber(token) == 1)
-        push(stack, atol(token));
-    else if (token_length == 1)
+char handle_token(Stack *st, char *dirty_token)
+{
+    const char *t = clean_token(dirty_token, strlen(dirty_token), &cpred);
+    const int tlen = strlen(t);
+    char status = 1;
+
+    if (isnumber(t) == 1)
+        spush(st, atol(t));
+    else if (tlen == 1)
     {
-        if (token[0] == '+')
-            bin_op_stack(stack, &fadd);
-        else if (token[0] == '-')
-            bin_op_stack(stack, &fminus);
-        else if (token[0] == '*')
-            bin_op_stack(stack, &ftimes);
+        if (t[0] == '+')
+            bin_op_stack(st, &fadd);
+        else if (t[0] == '-')
+            bin_op_stack(st, &fminus);
+        else if (t[0] == '*')
+            bin_op_stack(st, &ftimes);
+        else
+            status = 0;
     }
     else
-    {
-        free((void *)token);
-        return 0;
-    }
+        status = 0;
 
-    free((void *)token);
-    return 1;
+    free((void *)t);
+    return status;
 }
