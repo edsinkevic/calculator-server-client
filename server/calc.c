@@ -38,6 +38,8 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     bzero(input, BUFSIZE);
     strcpy(input, unprocessed_input);
 
+    char *save;
+
     Stack st = init();
     char *tok = strtok(input, " ");
 
