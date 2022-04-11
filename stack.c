@@ -9,17 +9,12 @@ Stack sinit()
     return s;
 }
 
-int ssize(Stack st)
+int ssize(struct element *stack_head)
 {
-    struct element *h = st.head;
-    int count = 0;
-    while (h != NULL)
-    {
-        count++;
-        h = h->next;
-    }
+    if (stack_head != NULL)
+        return 1 + ssize(stack_head->next);
 
-    return count;
+    return 0;
 }
 
 char spush(Stack *s, stype data)
