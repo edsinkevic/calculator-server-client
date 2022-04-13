@@ -5,7 +5,7 @@
 #include "calc.h"
 #include "stack.h"
 int isnumber(const char *string);
-void bin_op_stack(Stack *stack, long (*f)(long, long));
+char bin_op_stack(Stack *stack, long (*f)(long, long));
 long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
@@ -21,8 +21,8 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     EXT_CALLBACK = MSG_CALLBACK;
 
     char input[BUFSIZE];
-    bzero(input, BUFSIZE);
-    strcpy(input, unprocessed_input);
+    memset(input, 0, BUFSIZE);
+    strncpy(input, unprocessed_input, BUFSIZE);
 
     Stack st = sinit();
     char *tok = strtok(input, " ");
@@ -30,7 +30,10 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     while (tok != NULL)
     {
         if (!handle_token(&st, tok))
+        {
+            sfree(&st);
             return 0;
+        }
         tok = strtok(NULL, " ");
     }
 
@@ -42,16 +45,19 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     return result_status;
 }
 
-void bin_op_stack(Stack *st, long (*f)(long, long))
+char bin_op_stack(Stack *st, long (*f)(long, long))
 {
-    if (ssize(st->head) >= 2)
+    char status = 0;
+    if (ssize(*st) >= 2)
     {
         long b;
-        spop(st, &b);
         long a;
-        spop(st, &a);
-        spush(st, (*f)(a, b));
+        status = spop(st, &b);
+        status = spop(st, &a);
+        status = spush(st, (*f)(a, b));
     }
+
+    return status;
 }
 
 long fadd(long a, long b)
@@ -114,15 +120,15 @@ char handle_token(Stack *st, char *dirty_token)
     char status = 1;
 
     if (isnumber(t) == 1)
-        spush(st, atol(t));
+        status = spush(st, atol(t));
     else if (tlen == 1)
     {
         if (t[0] == '+')
-            bin_op_stack(st, &fadd);
+            status = bin_op_stack(st, &fadd);
         else if (t[0] == '-')
-            bin_op_stack(st, &fminus);
+            status = bin_op_stack(st, &fminus);
         else if (t[0] == '*')
-            bin_op_stack(st, &ftimes);
+            status = bin_op_stack(st, &ftimes);
         else
             status = 0;
     }

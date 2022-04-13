@@ -16,7 +16,7 @@ typedef struct Stack
 
 Stack sinit(); // returns an empty stack
 
-int ssize(struct element *);
+int ssize(Stack);
 
 char spush(Stack *, stype); // return 0 - could not allocate memory, 1 - pushed successfully
 

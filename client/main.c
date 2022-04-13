@@ -29,14 +29,14 @@ int main(int argc, char const *argv[])
     while (1)
     {
         printf("------------------------------------------\n");
-        bzero(ibuf, BUFSIZE);
+        memset(ibuf, 0, BUFSIZE);
         if (fgets(ibuf, BUFSIZE, stdin) == NULL)
             break;
 
         if (write(cs, ibuf, BUFSIZE) <= 0)
             break;
 
-        bzero(obuf, BUFSIZE);
+        memset(obuf, 0, BUFSIZE);
         if (read(cs, obuf, BUFSIZE) <= 0)
             break;
 
