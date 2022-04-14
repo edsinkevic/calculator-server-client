@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
-#include "calc.h"
+#include "../calc.h"
 #include "../edutils.h"
 
 #define OUTPUT_SIZE 1024
