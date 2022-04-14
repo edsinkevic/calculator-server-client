@@ -47,12 +47,12 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int findemptyuser(int c_sockets[])
+int find_free_slot(int fds[], int maxclients)
 {
     int i;
-    for (i = 0; i < MAXCLIENTS; i++)
+    for (i = 0; i < maxclients; i++)
     {
-        if (c_sockets[i] == -1)
+        if (fds[i] == -1)
         {
             return i;
         }
@@ -86,11 +86,9 @@ char perform_connection(const int listen_socket)
             if (cs[i] != -1)
             {
                 FD_SET(cs[i], &read_set);
+                if (cs[i] > maxfd)
                 {
-                    if (cs[i] > maxfd)
-                    {
-                        maxfd = cs[i];
-                    }
+                    maxfd = cs[i];
                 }
             }
         }
@@ -105,7 +103,7 @@ char perform_connection(const int listen_socket)
 
         if (FD_ISSET(listen_socket, &read_set))
         {
-            int client_id = findemptyuser(cs);
+            int client_id = find_free_slot(cs, MAXCLIENTS);
             if (client_id != -1)
             {
                 struct sockaddr_in caddr;
@@ -122,12 +120,16 @@ char perform_connection(const int listen_socket)
             {
                 if (FD_ISSET(cs[i], &read_set))
                 {
-                    int n = 0;
                     long res = 0;
                     memset(&ibuf, 0, INPUT_SIZE);
                     memset(&obuf, 0, OUTPUT_SIZE);
                     memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
-                    recv(cs[i], &ibuf, INPUT_SIZE, 0);
+                    if (read(cs[i], &ibuf, INPUT_SIZE) <= 0)
+                    {
+                        close(cs[i]);
+                        cs[i] = -1;
+                        break;
+                    }
 
                     if (calculate(ibuf, &res, &message_callback))
                         sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
