@@ -126,10 +126,9 @@ char perform_connection(const int listen_socket)
                     long res = 0;
                     memset(&ibuf, 0, INPUT_SIZE);
                     memset(&obuf, 0, OUTPUT_SIZE);
+                    memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
                     recv(cs[i], &ibuf, INPUT_SIZE, 0);
 
-                    memset(obuf, 0, OUTPUT_SIZE);
-                    memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
                     if (calculate(ibuf, &res, &message_callback))
                         sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
                     else
