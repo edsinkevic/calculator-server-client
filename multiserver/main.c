@@ -10,8 +10,8 @@
 #include <pthread.h>
 #include <errno.h>
 #include <ctype.h>
-#include "../calc.h"
-#include "../edutils.h"
+#include "../deps/calc.h"
+#include "../deps/edutils.h"
 
 #define OUTPUT_SIZE 1024
 #define INPUT_SIZE 1024

@@ -1,31 +1,37 @@
-client: client.o edutils.o
-	gcc -Wall client.o edutils.o -o run_client
+OBJ = $(CURDIR)/obj
+DEPS = $(CURDIR)/deps
 
-server: server.o edutils.o calc.o stack.o
-	gcc -Wall server.o edutils.o calc.o stack.o -o run_server
+client: $(OBJ)/client.o $(OBJ)/edutils.o
+	gcc -Wall $(OBJ)/client.o $(OBJ)/edutils.o -o run_client
 
-multiserver: multiserver.o edutils.o calc.o stack.o
-	gcc -Wall multiserver.o edutils.o calc.o stack.o -o run_multiserver
+server: $(OBJ)/server.o $(OBJ)/edutils.o $(OBJ)/calc.o $(OBJ)/stack.o
+	gcc -Wall $(OBJ)/server.o $(OBJ)/edutils.o $(OBJ)/calc.o $(OBJ)/stack.o -o run_server
 
-server.o: server/main.c
-	gcc -o server.o -c server/main.c
+multiserver: $(OBJ)/multiserver.o $(OBJ)/edutils.o $(OBJ)/calc.o $(OBJ)/stack.o
+	gcc -Wall $(OBJ)/multiserver.o $(OBJ)/edutils.o $(OBJ)/calc.o $(OBJ)/stack.o -o run_multiserver
 
-multiserver.o: multiserver/main.c
-	gcc -o multiserver.o -c multiserver/main.c
+$(OBJ)/server.o: server/main.c $(OBJ)
+	gcc -o $(OBJ)/server.o -c server/main.c
 
-client.o: client/main.c
-	gcc -o client.o -c client/main.c
+$(OBJ)/multiserver.o: multiserver/main.c $(OBJ)
+	gcc -o $(OBJ)/multiserver.o -c multiserver/main.c
 
-stack.o: stack.c stack.h
-	gcc -c stack.c
+$(OBJ)/client.o: client/main.c $(OBJ)
+	gcc -o $(OBJ)/client.o -c client/main.c
 
-calc.o: calc.c calc.h
-	gcc -c calc.c
+$(OBJ)/stack.o: $(DEPS)/stack.c $(DEPS)/stack.h $(OBJ)
+	gcc -o $(OBJ)/stack.o -c $(DEPS)/stack.c
 
-edutils.o: edutils.c edutils.h
-	gcc -c edutils.c
+$(OBJ)/calc.o: $(DEPS)/calc.c $(DEPS)/calc.h $(OBJ)
+	gcc -o $(OBJ)/calc.o -c $(DEPS)/calc.c
+
+$(OBJ)/edutils.o: $(DEPS)/edutils.c $(DEPS)/edutils.h $(OBJ)
+	gcc -o $(OBJ)/edutils.o -c $(DEPS)/edutils.c
+
+$(OBJ):
+	mkdir obj && mkdir deps
 
 clean:
-	rm *.o run_*
+	rm *.o obj/*.o run_*
 
-all: client server multiserver
+build: client server multiserver

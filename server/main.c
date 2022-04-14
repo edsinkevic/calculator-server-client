@@ -8,9 +8,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <errno.h>
 #include <ctype.h>
-#include "../calc.h"
-#include "../edutils.h"
+#include "../deps/calc.h"
+#include "../deps/edutils.h"
 
 #define OUTPUT_SIZE 1024
 #define INPUT_SIZE 1024
@@ -18,51 +19,33 @@
 #define QUEUE_SIZE 0
 #define PORT 9999
 
+#define CHECK(X) ({int __val=(X); (__val ==-1 ? \
+({fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
+exit(-1);-1;}) : __val); })
+
 char CALLBACK_BUFFER[CALLBACK_SIZE];
 
-int create_socket();
-void error();
-struct sockaddr_in get_address(int port);
-void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
 char perform_connection(int listen_socket, int *);
 
 int main(int argc, char **argv)
 {
-    const int ls = socket(AF_INET, SOCK_STREAM, 0);
-    if (ls < 0)
-        error();
-
-    const struct sockaddr_in saddr = get_address(PORT);
-
-    const int optval = 1;
-    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
-
-    if (bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)) < 0)
-        error();
-    if (listen(ls, QUEUE_SIZE) < 0)
-        error();
-
+    int ls = -1;
     int cs = -1;
+    struct sockaddr_in saddr;
+    int optval = 1;
+
+    saddr = get_address(PORT);
+    CHECK(ls = socket(AF_INET, SOCK_STREAM, 0));
+    CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int)));
+    CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
+    CHECK(listen(ls, QUEUE_SIZE));
+
     for (char q = 0; !q; q = perform_connection(ls, &cs))
         ;
 
     close(ls);
     close(cs);
     return 0;
-}
-
-void print_client_address(struct sockaddr_in client_address)
-{
-    const struct hostent const *hostp =
-        gethostbyaddr((const char *)&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
-    if (hostp == NULL)
-        error();
-
-    const char const *hostaddrp = inet_ntoa(client_address.sin_addr);
-    if (hostaddrp == NULL)
-        error();
-
-    printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);
 }
 
 void message_callback(const char const *message)
@@ -75,68 +58,41 @@ char perform_connection(const int listen_socket, int *connection_socket_p)
     char ibuf[INPUT_SIZE];
     char obuf[OUTPUT_SIZE];
     struct sockaddr_in caddr;
-    int addrlen = sizeof(caddr);
+    int addrlen = -1;
+    int cs = -1;
 
-    *connection_socket_p = accept(listen_socket, (struct sockaddr *)&caddr, &addrlen);
-    const int cs = *connection_socket_p;
-    if (cs < 0)
-        error();
+    addrlen = sizeof(caddr);
+    CHECK(*connection_socket_p = accept(listen_socket, (struct sockaddr *)&caddr, &addrlen));
+    cs = *connection_socket_p;
 
     while (check_connection_status(cs))
     {
-        bzero(ibuf, INPUT_SIZE);
-        bzero(obuf, OUTPUT_SIZE);
-        bzero(CALLBACK_BUFFER, CALLBACK_SIZE);
+        int n = 0;
+        long res = 0;
 
-        const int n = read(cs, ibuf, INPUT_SIZE);
+        memset(ibuf, 0, INPUT_SIZE);
+        memset(obuf, 0, OUTPUT_SIZE);
+        memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
+
+        CHECK(n = read(cs, ibuf, INPUT_SIZE));
         if (n == 0)
             return 0;
-        if (n < 0)
-            error();
 
         if (strncmp(ibuf, "shutdown", 8) == 0)
             return 1;
 
         print_client_address(caddr);
 
-        long res = 0;
         if (calculate(ibuf, &res, &message_callback))
-        {
-            printf("%s", ibuf);
-            printf("%ld\n", res);
             sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
-
-            const int n = write(cs, obuf, strlen(obuf));
-            if (n < 0)
-                error();
-        }
         else
-        {
             sprintf(obuf, "FAIL\n");
-            if (write(cs, obuf, strlen(obuf)) < 0)
-                error();
-        }
+
+        CHECK(write(cs, obuf, strlen(obuf)));
     }
 
     sprintf(obuf, "QUITTING\n");
-    if (write(cs, obuf, strlen(obuf)) < 0)
-        error();
+    CHECK(write(cs, obuf, strlen(obuf)));
 
     return 0;
-}
-
-void error()
-{
-    perror("ERROR");
-    exit(1);
-}
-
-struct sockaddr_in get_address(int port)
-{
-    struct sockaddr_in server_address;
-    bzero((char *)&server_address, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_address.sin_port = htons((unsigned short)PORT);
-    return server_address;
 }

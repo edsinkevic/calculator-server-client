@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include "../edutils.h"
+#include "../deps/edutils.h"
 
 #define PORT 9999
 #define BUFSIZE 1024
