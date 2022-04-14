@@ -4,11 +4,11 @@ main: main.o stack.o calc.o edutils.o
 main.o: main.c
 	gcc -c main.c
 
-stack.o: stack.c
-	gcc -c stack.c
+stack.o: ../stack.c
+	gcc -c ../stack.c
 
-calc.o: calc.c
-	gcc -c calc.c
+calc.o: ../calc.c
+	gcc -c ../calc.c
 
 edutils.o: ../edutils.c
 	gcc -c ../edutils.c

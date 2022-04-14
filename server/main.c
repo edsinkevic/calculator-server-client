@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <ctype.h>
-#include "calc.h"
+#include "../calc.h"
 #include "../edutils.h"
 
 #define OUTPUT_SIZE 1024
@@ -25,10 +25,6 @@ exit(-1);-1;}) : __val); })
 
 char CALLBACK_BUFFER[CALLBACK_SIZE];
 
-int create_socket();
-void error();
-struct sockaddr_in get_address(int port);
-void bind_to_port(int listen_socket, struct sockaddr_in serveraddr);
 char perform_connection(int listen_socket, int *);
 
 int main(int argc, char **argv)
@@ -50,20 +46,6 @@ int main(int argc, char **argv)
     close(ls);
     close(cs);
     return 0;
-}
-
-void print_client_address(struct sockaddr_in client_address)
-{
-    const struct hostent const *hostp =
-        gethostbyaddr((const char *)&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
-    if (hostp == NULL)
-        error();
-
-    const char const *hostaddrp = inet_ntoa(client_address.sin_addr);
-    if (hostaddrp == NULL)
-        error();
-
-    printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);
 }
 
 void message_callback(const char const *message)
@@ -113,20 +95,4 @@ char perform_connection(const int listen_socket, int *connection_socket_p)
     CHECK(write(cs, obuf, strlen(obuf)));
 
     return 0;
-}
-
-void error()
-{
-    perror("ERROR");
-    exit(1);
-}
-
-struct sockaddr_in get_address(int port)
-{
-    struct sockaddr_in server_address;
-    memset((char *)&server_address, 0, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_address.sin_port = htons((unsigned short)PORT);
-    return server_address;
 }

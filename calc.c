@@ -25,16 +25,16 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     strncpy(input, unprocessed_input, BUFSIZE);
 
     Stack st = sinit();
-    char *tok = strtok(input, " ");
+    char *t = strtok(input, " ");
 
-    while (tok != NULL)
+    while (t != NULL)
     {
-        if (!handle_token(&st, tok))
+        if (!handle_token(&st, t))
         {
             sfree(&st);
             return 0;
         }
-        tok = strtok(NULL, " ");
+        t = strtok(NULL, " ");
     }
 
     const char result_status = spop(&st, result);
