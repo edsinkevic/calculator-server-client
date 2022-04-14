@@ -26,7 +26,7 @@ exit(-1);-1;}) : __val); })
 
 char CALLBACK_BUFFER[CALLBACK_SIZE];
 
-char perform_connection(int listen_socket);
+char perform_connection(int ls);
 
 int main(int argc, char **argv)
 {
@@ -40,8 +40,7 @@ int main(int argc, char **argv)
     CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
     CHECK(listen(ls, QUEUE_SIZE));
 
-    for (char q = 0; !q; q = perform_connection(ls))
-        ;
+    perform_connection(ls);
 
     close(ls);
     return 0;
@@ -65,7 +64,7 @@ void message_callback(const char const *message)
     sprintf(CALLBACK_BUFFER, "%s%s", CALLBACK_BUFFER, message);
 }
 
-char perform_connection(const int listen_socket)
+char perform_connection(const int ls)
 {
     int cs[MAXCLIENTS];
     char ibuf[INPUT_SIZE];
@@ -93,15 +92,15 @@ char perform_connection(const int listen_socket)
             }
         }
 
-        FD_SET(listen_socket, &read_set);
-        if (listen_socket > maxfd)
+        FD_SET(ls, &read_set);
+        if (ls > maxfd)
         {
-            maxfd = listen_socket;
+            maxfd = ls;
         }
 
         select(maxfd + 1, &read_set, NULL, NULL, NULL);
 
-        if (FD_ISSET(listen_socket, &read_set))
+        if (FD_ISSET(ls, &read_set))
         {
             int client_id = find_free_slot(cs, MAXCLIENTS);
             if (client_id != -1)
@@ -109,7 +108,7 @@ char perform_connection(const int listen_socket)
                 struct sockaddr_in caddr;
                 int caddrlen = sizeof(caddr);
                 memset(&caddr, 0, caddrlen);
-                cs[client_id] = accept(listen_socket, (struct sockaddr *)&caddr, &caddrlen);
+                cs[client_id] = accept(ls, (struct sockaddr *)&caddr, &caddrlen);
                 print_client_address(caddr);
             }
         }
