@@ -78,10 +78,6 @@ char perform_connection(const int listen_socket)
     for (int i = 0; i < MAXCLIENTS; i++)
         cs[i] = -1;
 
-    // addrlen = sizeof(caddr);
-    // CHECK(*c_sockets = accept(listen_socket, (struct sockaddr *)&caddr, &addrlen));
-    // cs = *c_sockets;
-
     for (;;)
     {
         FD_ZERO(&read_set);
