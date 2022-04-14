@@ -31,7 +31,7 @@ char spush(Stack *s, stype data)
     else
     {
         node->data = data;
-        node->next = (*s).head;
+        node->next = s->head;
         s->head = node;
 
         return 1;
@@ -53,12 +53,12 @@ char sempty(Stack s)
 char spop(Stack *s, stype *x)
 {
 
-    if ((*s).head != NULL)
+    if (s->head != NULL)
     {
-        struct element *temp_ptr = (*s).head;
-        stype value = ((*s).head)->data;
-        (*s).head = ((*s).head)->next;
-        free(temp_ptr);
+        struct element *tmp = s->head;
+        stype value = s->head->data;
+        s->head = s->head->next;
+        free(tmp);
         *x = value;
         return 1;
     }
@@ -70,13 +70,13 @@ char spop(Stack *s, stype *x)
 
 void sfree(Stack *s)
 {
-    struct element *temp_ptr;
+    struct element *tmp;
 
-    while (((*s).head) != NULL)
+    while (s->head != NULL)
     {
-        temp_ptr = (*s).head;
-        (*s).head = ((*s).head)->next;
-        free(temp_ptr);
+        tmp = s->head;
+        s->head = s->head->next;
+        free(tmp);
     }
 }
 
