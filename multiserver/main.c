@@ -15,32 +15,32 @@
 
 #define OUTPUT_SIZE 1024
 #define INPUT_SIZE 1024
-#define CALLBACK_SIZE OUTPUT_SIZE - sizeof(long) - 1
+#define CALLBACK_SIZE OUTPUT_SIZE - sizeof(int32_t) - 1
 #define QUEUE_SIZE 0
 #define PORT 9999
 #define MAXCLIENTS 10
 
-#define CHECK(X) ({int __val=(X); (__val ==-1 ? \
+#define CHECK(X) ({int32_t __val=(X); (__val ==-1 ? \
 ({fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
 exit(-1);-1;}) : __val); })
 
-#define CHECK_RETURN(X) ({int __val=(X); (__val <= 0 ? \
+#define CHECK_RETURN(X) ({int32_t __val=(X); (__val <= 0 ? \
 ({if(__val == -1) fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
 return -1;}) : __val); })
 
 char CALLBACK_BUFFER[CALLBACK_SIZE];
 
-char perform_connection(int ls);
+char perform_connection(int32_t ls);
 
-int main(int argc, char **argv)
+int32_t main(int32_t argc, char **argv)
 {
-    int ls = -1;
+    int32_t ls = -1;
     struct sockaddr_in saddr;
-    int optval = 1;
+    int32_t optval = 1;
 
     saddr = get_address(PORT);
     CHECK(ls = socket(AF_INET, SOCK_STREAM, 0));
-    CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int)));
+    CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int32_t)));
     CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
     CHECK(listen(ls, QUEUE_SIZE));
 
@@ -50,9 +50,9 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int find_free_slot(int fds[], int maxclients)
+int32_t find_free_slot(int32_t fds[], int32_t maxclients)
 {
-    int i;
+    int32_t i;
     for (i = 0; i < maxclients; i++)
     {
         if (fds[i] == -1)
@@ -68,9 +68,9 @@ void message_callback(const char const *message)
     sprintf(CALLBACK_BUFFER, "%s%s", CALLBACK_BUFFER, message);
 }
 
-int handle_read(int fd)
+int32_t handle_read(int32_t fd)
 {
-    long res = 0;
+    int32_t res = 0;
     char ibuf[INPUT_SIZE];
     char obuf[OUTPUT_SIZE];
 
@@ -81,7 +81,7 @@ int handle_read(int fd)
     CHECK_RETURN(read(fd, &ibuf, INPUT_SIZE));
 
     if (calculate(ibuf, &res, &message_callback))
-        sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
+        sprintf(obuf, "%s%d\n", CALLBACK_BUFFER, res);
     else
         sprintf(obuf, "FAIL\n");
 
@@ -90,11 +90,11 @@ int handle_read(int fd)
     return 1;
 }
 
-int handle_connect(int fd)
+int32_t handle_connect(int32_t fd)
 {
-    int cs;
+    int32_t cs;
     struct sockaddr_in caddr;
-    int caddrlen = sizeof(caddr);
+    int32_t caddrlen = sizeof(caddr);
     memset(&caddr, 0, caddrlen);
     CHECK_RETURN(cs = accept(fd, (struct sockaddr *)&caddr, &caddrlen));
     print_client_address(caddr);
@@ -102,22 +102,22 @@ int handle_connect(int fd)
     return cs;
 }
 
-char perform_connection(const int ls)
+char perform_connection(const int32_t ls)
 {
-    int cs[MAXCLIENTS];
+    int32_t cs[MAXCLIENTS];
     char ibuf[INPUT_SIZE];
     char obuf[OUTPUT_SIZE];
-    int addrlen = -1;
+    int32_t addrlen = -1;
     fd_set read_set;
-    int maxfd = -1;
+    int32_t maxfd = -1;
 
-    for (int i = 0; i < MAXCLIENTS; i++)
+    for (int32_t i = 0; i < MAXCLIENTS; i++)
         cs[i] = -1;
 
     for (;;)
     {
         FD_ZERO(&read_set);
-        for (int i = 0; i < MAXCLIENTS; i++)
+        for (int32_t i = 0; i < MAXCLIENTS; i++)
         {
             if (cs[i] != -1)
             {
@@ -139,14 +139,14 @@ char perform_connection(const int ls)
 
         if (FD_ISSET(ls, &read_set))
         {
-            int client_id = find_free_slot(cs, MAXCLIENTS);
+            int32_t client_id = find_free_slot(cs, MAXCLIENTS);
             if (client_id != -1)
             {
                 cs[client_id] = handle_connect(ls);
             }
         }
 
-        for (int i = 0; i < MAXCLIENTS; i++)
+        for (int32_t i = 0; i < MAXCLIENTS; i++)
         {
             if (cs[i] != -1)
             {

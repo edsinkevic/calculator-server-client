@@ -2,22 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 #include "calc.h"
 #include "stack.h"
 
-int isnumber(const char *string);
-char bin_op_stack(stack *stack, long (*f)(long, long));
-long fadd(long a, long b);
-long fminus(long a, long b);
-long ftimes(long a, long b);
-char handle_token(stack *stack, char *dirty_token);
-char cpred(char c);
+static int32_t isnumber(const char *string);
+static char bin_op_stack(stack *stack, int32_t (*f)(int32_t, int32_t));
+static int32_t fadd(int32_t a, int32_t b);
+static int32_t fminus(int32_t a, int32_t b);
+static int32_t ftimes(int32_t a, int32_t b);
+static char handle_token(stack *stack, char *dirty_token);
+static char cpred(char c);
 
 #define BUFSIZE 1024
 
 void (*EXT_CALLBACK)(const char const *message) = NULL;
 
-int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const char const *message))
+int32_t calculate(char *unprocessed_input, int32_t *result, void (*MSG_CALLBACK)(const char const *message))
 {
     EXT_CALLBACK = MSG_CALLBACK;
 
@@ -46,12 +47,12 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     return result_status;
 }
 
-char bin_op_stack(stack *st, long (*f)(long, long))
+static char bin_op_stack(stack *st, int32_t (*f)(int32_t, int32_t))
 {
     char status = 0;
     if (ssize(st) >= 2)
     {
-        long b, a;
+        int32_t b, a;
         status = spop(st, &b);
         status = spop(st, &a);
         status = spush(st, (*f)(a, b));
@@ -60,44 +61,44 @@ char bin_op_stack(stack *st, long (*f)(long, long))
     return status;
 }
 
-long fadd(long a, long b)
+static int32_t fadd(int32_t a, int32_t b)
 {
     if (EXT_CALLBACK != NULL)
     {
         char message[BUFSIZE];
-        sprintf(message, "%ld + %ld\n", a, b);
+        sprintf(message, "%d + %d\n", a, b);
         EXT_CALLBACK(message);
     }
     return a + b;
 }
 
-long fminus(long a, long b)
+static int32_t fminus(int32_t a, int32_t b)
 {
     if (EXT_CALLBACK != NULL)
     {
         char message[BUFSIZE];
-        sprintf(message, "%ld - %ld\n", a, b);
+        sprintf(message, "%d - %d\n", a, b);
         EXT_CALLBACK(message);
     }
     return a - b;
 }
 
-long ftimes(long a, long b)
+static int32_t ftimes(int32_t a, int32_t b)
 {
     if (EXT_CALLBACK != NULL)
     {
         char message[BUFSIZE];
-        sprintf(message, "%ld * %ld\n", a, b);
+        sprintf(message, "%d * %d\n", a, b);
         EXT_CALLBACK(message);
     }
     return a * b;
 }
 
-int isnumber(const char *string)
+static int32_t isnumber(const char *string)
 {
-    int i = 0;
-    const int l = strlen(string);
-    const char isneg = l > 1 && string[0] == '-';
+    int32_t i = 0;
+    int32_t l = strlen(string);
+    char isneg = l > 1 && string[0] == '-';
     if (isneg)
         ++i;
 
@@ -108,15 +109,15 @@ int isnumber(const char *string)
     return 1;
 }
 
-char cpred(char c)
+static char cpred(char c)
 {
     return isalnum(c) || c == '-' || c == '+' || c == '*' || c == '(' || c == ')';
 }
 
-char handle_token(stack *st, char *dirty_token)
+static char handle_token(stack *st, char *dirty_token)
 {
     char *t = clean_token(dirty_token, strlen(dirty_token), &cpred);
-    int tlen = strlen(t);
+    int32_t tlen = strlen(t);
     char status = 1;
 
     if (isnumber(t) == 1)

@@ -2,7 +2,7 @@
 #define STACK_H_INCLUDED
 
 #ifndef STYPE
-#define STYPE long
+#define STYPE int32_t
 #endif
 
 typedef struct _stack stack;
