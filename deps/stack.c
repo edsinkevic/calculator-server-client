@@ -2,16 +2,27 @@
 #include <stdlib.h>
 #include "stack.h"
 
-Stack sinit()
+struct element
 {
-    Stack s;
-    s.head = NULL;
+    STYPE data;
+    struct element *next;
+};
+
+typedef struct _stack
+{
+    struct element *head;
+} stack;
+
+stack *sinit()
+{
+    stack *s = (stack *)malloc(sizeof(stack));
+    s->head = NULL;
     return s;
 }
 
-int ssize(Stack st)
+int ssize(stack *st)
 {
-    struct element *h = st.head;
+    struct element *h = st->head;
     int count = 0;
     while (h != NULL)
     {
@@ -22,53 +33,49 @@ int ssize(Stack st)
     return count;
 }
 
-char spush(Stack *s, stype data)
+char spush(stack *s, STYPE data)
 {
     struct element *node = (struct element *)malloc(sizeof(struct element));
 
     if (node == NULL)
         return 0;
-    else
-    {
-        node->data = data;
-        node->next = s->head;
-        s->head = node;
 
-        return 1;
-    }
+    node->data = data;
+    node->next = s->head;
+    s->head = node;
+
+    return 1;
 }
 
-char sfull(Stack *s)
+char sfull(stack *s)
 {
     struct element *node = (struct element *)malloc(sizeof(struct element));
     free(node);
     return node == NULL;
 }
 
-char sempty(Stack s)
+char sempty(stack *s)
 {
-    return s.head == NULL;
+    return s->head == NULL;
 }
 
-char spop(Stack *s, stype *x)
+char spop(stack *s, STYPE *x)
 {
 
     if (s->head != NULL)
     {
         struct element *tmp = s->head;
-        stype value = s->head->data;
+        STYPE value = s->head->data;
         s->head = s->head->next;
         free(tmp);
         *x = value;
         return 1;
     }
-    else
-    {
-        return 0;
-    }
+
+    return 0;
 }
 
-void sfree(Stack *s)
+void sfree(stack *s)
 {
     struct element *tmp;
 
@@ -78,11 +85,13 @@ void sfree(Stack *s)
         s->head = s->head->next;
         free(tmp);
     }
+
+    free(s);
 }
 
-void sprint(Stack st)
+void sprint(stack *st)
 {
-    struct element *head = st.head;
+    struct element *head = st->head;
     printf("Printing what's left in stack:\n");
     while (head != NULL)
     {

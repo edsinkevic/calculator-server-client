@@ -5,11 +5,11 @@
 #include "calc.h"
 #include "stack.h"
 int isnumber(const char *string);
-char bin_op_stack(Stack *stack, long (*f)(long, long));
+char bin_op_stack(stack *stack, long (*f)(long, long));
 long fadd(long a, long b);
 long fminus(long a, long b);
 long ftimes(long a, long b);
-char handle_token(Stack *stack, char *dirty_token);
+char handle_token(stack *stack, char *dirty_token);
 char cpred(char c);
 
 #define BUFSIZE 1024
@@ -24,12 +24,12 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     memset(input, 0, BUFSIZE);
     strncpy(input, unprocessed_input, BUFSIZE);
 
-    Stack st = sinit();
+    stack *st = sinit();
     char *t = strtok(input, " ");
 
     while (t != NULL)
     {
-        if (!handle_token(&st, t))
+        if (!handle_token(st, t))
         {
             sfree(&st);
             return 0;
@@ -37,18 +37,18 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
         t = strtok(NULL, " ");
     }
 
-    const char result_status = spop(&st, result);
+    const char result_status = spop(st, result);
 
     sprint(st);
-    sfree(&st);
+    sfree(st);
     EXT_CALLBACK = NULL;
     return result_status;
 }
 
-char bin_op_stack(Stack *st, long (*f)(long, long))
+char bin_op_stack(stack *st, long (*f)(long, long))
 {
     char status = 0;
-    if (ssize(*st) >= 2)
+    if (ssize(st) >= 2)
     {
         long b;
         long a;
@@ -113,7 +113,7 @@ char cpred(char c)
     return isalnum(c) || c == '-' || c == '+' || c == '*' || c == '(' || c == ')';
 }
 
-char handle_token(Stack *st, char *dirty_token)
+char handle_token(stack *st, char *dirty_token)
 {
     const char *t = clean_token(dirty_token, strlen(dirty_token), &cpred);
     const int tlen = strlen(t);

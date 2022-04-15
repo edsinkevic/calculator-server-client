@@ -1,33 +1,26 @@
 #ifndef STACK_H_INCLUDED
 #define STACK_H_INCLUDED
 
-typedef long stype;
+#ifndef STYPE
+#define STYPE long
+#endif
 
-struct element
-{
-    stype data;
-    struct element *next;
-};
+typedef struct _stack stack;
 
-typedef struct Stack
-{
-    struct element *head;
-} Stack;
+stack *sinit(); // returns an empty stack
 
-Stack sinit(); // returns an empty stack
+int ssize(stack *);
 
-int ssize(Stack);
+char spush(stack *, STYPE); // return 0 - could not allocate memory, 1 - pushed successfully
 
-char spush(Stack *, stype); // return 0 - could not allocate memory, 1 - pushed successfully
+char sempty(stack *); // 1 - empty, 0 - not empty
 
-char sempty(Stack); // 1 - empty, 0 - not empty
+char sfull(stack *); // 1 - could not allocate more memory, 0 - memory allocated
 
-char sfull(Stack *); // 1 - could not allocate more memory, 0 - memory allocated
+char spop(stack *, STYPE *); // return 0 - stack empty, 1 - popped successfully
 
-char spop(Stack *, stype *); // return 0 - stack empty, 1 - popped successfully
+void sfree(stack *);
 
-void sfree(Stack *);
-
-void sprint(Stack);
+void sprint(stack *);
 
 #endif // STACK_H_INCLUDED
