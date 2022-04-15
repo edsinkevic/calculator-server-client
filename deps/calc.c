@@ -32,7 +32,7 @@ int calculate(char *unprocessed_input, long *result, void (*MSG_CALLBACK)(const 
     {
         if (!handle_token(st, t))
         {
-            sfree(&st);
+            sfree(st);
             return 0;
         }
         t = strtok(NULL, " ");

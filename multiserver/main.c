@@ -24,6 +24,10 @@
 ({fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
 exit(-1);-1;}) : __val); })
 
+#define CHECK_RETURN(X) ({int __val=(X); (__val <= 0 ? \
+({if(__val == -1) fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
+return -1;}) : __val); })
+
 char CALLBACK_BUFFER[CALLBACK_SIZE];
 
 char perform_connection(int ls);
@@ -64,12 +68,45 @@ void message_callback(const char const *message)
     sprintf(CALLBACK_BUFFER, "%s%s", CALLBACK_BUFFER, message);
 }
 
+int handle_read(int fd)
+{
+    long res = 0;
+    char ibuf[INPUT_SIZE];
+    char obuf[OUTPUT_SIZE];
+
+    memset(&ibuf, 0, INPUT_SIZE);
+    memset(&obuf, 0, OUTPUT_SIZE);
+    memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
+
+    CHECK_RETURN(read(fd, &ibuf, INPUT_SIZE));
+
+    if (calculate(ibuf, &res, &message_callback))
+        sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
+    else
+        sprintf(obuf, "FAIL\n");
+
+    CHECK_RETURN(write(fd, obuf, strlen(obuf)));
+
+    return 1;
+}
+
+int handle_connect(int fd)
+{
+    int cs;
+    struct sockaddr_in caddr;
+    int caddrlen = sizeof(caddr);
+    memset(&caddr, 0, caddrlen);
+    CHECK_RETURN(cs = accept(fd, (struct sockaddr *)&caddr, &caddrlen));
+    print_client_address(caddr);
+
+    return cs;
+}
+
 char perform_connection(const int ls)
 {
     int cs[MAXCLIENTS];
     char ibuf[INPUT_SIZE];
     char obuf[OUTPUT_SIZE];
-    struct sockaddr_in caddr;
     int addrlen = -1;
     fd_set read_set;
     int maxfd = -1;
@@ -105,11 +142,7 @@ char perform_connection(const int ls)
             int client_id = find_free_slot(cs, MAXCLIENTS);
             if (client_id != -1)
             {
-                struct sockaddr_in caddr;
-                int caddrlen = sizeof(caddr);
-                memset(&caddr, 0, caddrlen);
-                cs[client_id] = accept(ls, (struct sockaddr *)&caddr, &caddrlen);
-                print_client_address(caddr);
+                cs[client_id] = handle_connect(ls);
             }
         }
 
@@ -118,29 +151,11 @@ char perform_connection(const int ls)
             if (cs[i] != -1)
             {
                 if (FD_ISSET(cs[i], &read_set))
-                {
-                    long res = 0;
-                    memset(&ibuf, 0, INPUT_SIZE);
-                    memset(&obuf, 0, OUTPUT_SIZE);
-                    memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
-                    if (read(cs[i], &ibuf, INPUT_SIZE) <= 0)
-                    {
-                        close(cs[i]);
-                        cs[i] = -1;
-                        break;
-                    }
-
-                    if (calculate(ibuf, &res, &message_callback))
-                        sprintf(obuf, "%s%ld\n", CALLBACK_BUFFER, res);
-                    else
-                        sprintf(obuf, "FAIL\n");
-
-                    if (write(cs[i], obuf, strlen(obuf)) <= 0)
+                    if (handle_read(cs[i]) <= 0)
                     {
                         close(cs[i]);
                         cs[i] = -1;
                     }
-                }
             }
         }
     }
