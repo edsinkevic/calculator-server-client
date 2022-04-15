@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "calc.h"
 #include "stack.h"
+
 int isnumber(const char *string);
 char bin_op_stack(stack *stack, long (*f)(long, long));
 long fadd(long a, long b);
@@ -50,8 +51,7 @@ char bin_op_stack(stack *st, long (*f)(long, long))
     char status = 0;
     if (ssize(st) >= 2)
     {
-        long b;
-        long a;
+        long b, a;
         status = spop(st, &b);
         status = spop(st, &a);
         status = spush(st, (*f)(a, b));
@@ -115,26 +115,32 @@ char cpred(char c)
 
 char handle_token(stack *st, char *dirty_token)
 {
-    const char *t = clean_token(dirty_token, strlen(dirty_token), &cpred);
-    const int tlen = strlen(t);
+    char *t = clean_token(dirty_token, strlen(dirty_token), &cpred);
+    int tlen = strlen(t);
     char status = 1;
 
     if (isnumber(t) == 1)
         status = spush(st, atol(t));
     else if (tlen == 1)
     {
-        if (t[0] == '+')
+        switch (t[0])
+        {
+        case '+':
             status = bin_op_stack(st, &fadd);
-        else if (t[0] == '-')
+            break;
+        case '-':
             status = bin_op_stack(st, &fminus);
-        else if (t[0] == '*')
+            break;
+        case '*':
             status = bin_op_stack(st, &ftimes);
-        else
+            break;
+        default:
             status = 0;
+        }
     }
     else
         status = 0;
 
-    free((void *)t);
+    free(t);
     return status;
 }
