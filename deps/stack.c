@@ -1,31 +1,27 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "stack.h"
 
-struct element
-{
+#include <stdio.h>
+#include <stdlib.h>
+
+struct element {
     STYPE data;
     struct element *next;
 };
 
-typedef struct _stack
-{
+typedef struct _stack {
     struct element *head;
 } stack;
 
-stack *sinit()
-{
+stack *sinit() {
     stack *s = (stack *)malloc(sizeof(stack));
     s->head = NULL;
     return s;
 }
 
-int ssize(stack *st)
-{
+int ssize(stack *st) {
     struct element *h = st->head;
     int count = 0;
-    while (h != NULL)
-    {
+    while (h != NULL) {
         count++;
         h = h->next;
     }
@@ -33,8 +29,7 @@ int ssize(stack *st)
     return count;
 }
 
-char spush(stack *s, STYPE data)
-{
+char spush(stack *s, STYPE data) {
     struct element *node = (struct element *)malloc(sizeof(struct element));
 
     if (node == NULL)
@@ -47,23 +42,18 @@ char spush(stack *s, STYPE data)
     return 1;
 }
 
-char sfull(stack *s)
-{
+char sfull(stack *s) {
     struct element *node = (struct element *)malloc(sizeof(struct element));
     free(node);
     return node == NULL;
 }
 
-char sempty(stack *s)
-{
+char sempty(stack *s) {
     return s->head == NULL;
 }
 
-char spop(stack *s, STYPE *x)
-{
-
-    if (s->head != NULL)
-    {
+char spop(stack *s, STYPE *x) {
+    if (s->head != NULL) {
         struct element *tmp = s->head;
         STYPE value = s->head->data;
         s->head = s->head->next;
@@ -75,12 +65,10 @@ char spop(stack *s, STYPE *x)
     return 0;
 }
 
-void sfree(stack *s)
-{
+void sfree(stack *s) {
     struct element *tmp;
 
-    while (s->head != NULL)
-    {
+    while (s->head != NULL) {
         tmp = s->head;
         s->head = s->head->next;
         free(tmp);
@@ -89,12 +77,10 @@ void sfree(stack *s)
     free(s);
 }
 
-void sprint(stack *st)
-{
+void sprint(stack *st) {
     struct element *head = st->head;
     printf("Printing what's left in stack:\n");
-    while (head != NULL)
-    {
+    while (head != NULL) {
         printf("%d\n", (int)head->data);
         head = head->next;
     }
