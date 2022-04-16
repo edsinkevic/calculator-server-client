@@ -16,20 +16,22 @@
 
 #define OUTPUT_SIZE 1024
 #define INPUT_SIZE 1024
-#define CALLBACK_SIZE OUTPUT_SIZE - sizeof(int32_t) - 1
+#define CALLBACK_SIZE OUTPUT_SIZE - sizeof(int) - 1
 #define QUEUE_SIZE 0
 #define PORT 9999
+
+typedef int int32_t;
 
 static char CALLBACK_BUFFER[CALLBACK_SIZE];
 
 static void message_callback(const char const *message);
-static char perform_connection(int32_t listen_socket, int32_t *);
+static char perform_connection(int listen_socket, int *);
 
-int32_t main() {
-        int32_t ls = -1;
-        int32_t cs = -1;
+int main() {
+        int ls = -1;
+        int cs = -1;
         struct sockaddr_in saddr;
-        int32_t optval = 1;
+        int optval = 1;
 
         saddr = get_address(PORT);
         CHECK(ls = socket(AF_INET, SOCK_STREAM, 0));
@@ -40,30 +42,30 @@ int32_t main() {
         for (char q = 0; !q; q = perform_connection(ls, &cs) == 0)
                 ;
 
-        close(ls);
-        close(cs);
-        return 0;
+        CHECK_PRINT(close(ls));
+        CHECK_PRINT(close(cs));
+        return EXIT_SUCCESS;
 }
 
 static void message_callback(const char const *message) {
         sprintf(CALLBACK_BUFFER, "%s%s", CALLBACK_BUFFER, message);
 }
 
-static char perform_connection(const int32_t listen_socket, int32_t *connection_socket_p) {
+static char perform_connection(const int listen_socket, int *connection_socket_p) {
         struct sockaddr_in caddr;
-        int32_t addrlen = -1;
-        int32_t cs = -1;
+        int addrlen = -1;
+        int cs = -1;
 
         addrlen = sizeof(caddr);
         CHECK(*connection_socket_p = accept(listen_socket, (struct sockaddr *)&caddr, &addrlen));
         cs = *connection_socket_p;
 
-        print_client_address(caddr);
+        CHECK_PRINT(print_client_address(caddr));
 
         while (check_connection_status(cs)) {
                 char ibuf[INPUT_SIZE];
                 char obuf[OUTPUT_SIZE];
-                int32_t res = 0;
+                int res = 0;
 
                 memset(ibuf, 0, INPUT_SIZE);
                 memset(obuf, 0, OUTPUT_SIZE);
@@ -71,7 +73,7 @@ static char perform_connection(const int32_t listen_socket, int32_t *connection_
 
                 CHECK_RETURN(read(cs, ibuf, INPUT_SIZE));
 
-                if (calculate(ibuf, &res, &message_callback))
+                if (!calculate(ibuf, &res, &message_callback))
                         sprintf(obuf, "%s%d\n", CALLBACK_BUFFER, res);
                 else
                         sprintf(obuf, "FAIL\n");

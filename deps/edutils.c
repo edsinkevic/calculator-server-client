@@ -47,15 +47,18 @@ void error() {
         exit(1);
 }
 
-void print_client_address(struct sockaddr_in client_address) {
-        struct hostent const *hostp =
-            gethostbyaddr(&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
-        if (!hostp)
-                error();
+int print_client_address(struct sockaddr_in client_address) {
+        struct hostent *hostp;
+        struct in_addr tmp;
+        char *hostaddrp;
 
-        char *hostaddrp = inet_ntoa(client_address.sin_addr);
-        if (!hostaddrp)
-                error();
+        tmp = client_address.sin_addr;
+        if (!(hostp = gethostbyaddr(&tmp.s_addr, sizeof(tmp.s_addr), AF_INET)))
+                return -1;
+        if (!(hostaddrp = inet_ntoa(tmp)))
+                return -1;
 
         printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);
+
+        return EXIT_SUCCESS;
 }

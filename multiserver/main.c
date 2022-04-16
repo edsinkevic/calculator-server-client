@@ -60,7 +60,7 @@ static char perform_connection(const int32_t ls) {
                 FD_SET(ls, &readfds);
                 if (ls > maxfd)
                         maxfd = ls;
-                select(maxfd + 1, &readfds, NULL, NULL, NULL);
+                CHECK_PRINT(select(maxfd + 1, &readfds, NULL, NULL, NULL));
                 handle_new_connections(ls, cs, &readfds);
                 read_set_clients(ls, cs, &readfds);
         }
@@ -90,7 +90,7 @@ static int32_t handle_read(int32_t fd) {
 
         CHECK_RETURN(read(fd, &ibuf, INPUT_SIZE));
 
-        if (calculate(ibuf, &res, &message_callback))
+        if (!calculate(ibuf, &res, &message_callback))
                 sprintf(obuf, "%s%d\n", CALLBACK_BUFFER, res);
         else
                 sprintf(obuf, "FAIL\n");
@@ -108,7 +108,7 @@ static int32_t handle_connect(int32_t fd) {
         caddrlen = sizeof(caddr);
         memset(&caddr, 0, caddrlen);
         CHECK_RETURN(cs = accept(fd, (struct sockaddr *)&caddr, &caddrlen));
-        print_client_address(caddr);
+        CHECK_PRINT(print_client_address(caddr));
 
         return cs;
 }

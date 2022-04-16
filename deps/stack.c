@@ -39,12 +39,12 @@ char spush(stack *s, STYPE data) {
 
         e = malloc(sizeof(struct elem));
         if (!e)
-                return 0;
+                return EXIT_FAILURE;
         e->data = data;
         e->next = s->head;
         s->head = e;
 
-        return 1;
+        return EXIT_SUCCESS;
 }
 
 char sfull(stack *s) {
@@ -68,10 +68,10 @@ char spop(stack *s, STYPE *x) {
                 s->head = s->head->next;
                 free(tmp);
                 *x = value;
-                return 1;
+                return EXIT_SUCCESS;
         }
 
-        return 0;
+        return EXIT_FAILURE;
 }
 
 void sfree(stack *s) {
