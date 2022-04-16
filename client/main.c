@@ -10,32 +10,37 @@
 #define PORT 9999
 #define BUFSIZE 1024
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char *argv[]) {
         struct sockaddr_in saddr;
         char obuf[BUFSIZE];
         char ibuf[BUFSIZE];
+        int cs;
+        int l;
+        char *ip;
 
-        const int cs = socket(AF_INET, SOCK_STREAM, 0);
-        const int l = sizeof(saddr);
-        const char *ip = "127.0.0.1";
+        CHECK(cs = socket(AF_INET, SOCK_STREAM, 0));
+        l = sizeof(saddr);
+        ip = "127.0.0.1";
 
-        bzero(&saddr, l);
+        memset(&saddr, 0, l);
         saddr.sin_family = AF_INET;
         saddr.sin_addr.s_addr = inet_addr(ip);
         saddr.sin_port = htons(PORT);
 
-        connect(cs, (const struct sockaddr *)&saddr, l);
+        CHECK(connect(cs, (struct sockaddr *)&saddr, l));
 
-        while (1) {
+        for (;;) {
+                memset(ibuf, 0, BUFSIZE);
+                memset(obuf, 0, BUFSIZE);
+
                 printf("------------------------------------------\n");
-                bzero(ibuf, BUFSIZE);
+
                 if (fgets(ibuf, BUFSIZE, stdin) == NULL)
                         break;
 
                 if (write(cs, ibuf, BUFSIZE) <= 0)
                         break;
 
-                bzero(obuf, BUFSIZE);
                 if (read(cs, obuf, BUFSIZE) <= 0)
                         break;
 
