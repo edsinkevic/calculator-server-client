@@ -13,39 +13,46 @@ typedef struct _stack {
 } stack;
 
 stack *sinit() {
-        stack *s = malloc(sizeof(stack));
+        stack *s;
+
+        s = malloc(sizeof(stack));
         s->head = NULL;
         return s;
 }
 
 int ssize(stack *st) {
-        struct elem *h = st->head;
-        int count = 0;
-        while (h != NULL) {
-                count++;
+        struct elem *h;
+        int i;
+
+        h = st->head;
+        i = 0;
+        while (h) {
+                i++;
                 h = h->next;
         }
 
-        return count;
+        return i;
 }
 
 char spush(stack *s, STYPE data) {
-        struct elem *node = malloc(sizeof(struct elem));
+        struct elem *e;
 
-        if (node == NULL)
+        e = malloc(sizeof(struct elem));
+        if (!e)
                 return 0;
-
-        node->data = data;
-        node->next = s->head;
-        s->head = node;
+        e->data = data;
+        e->next = s->head;
+        s->head = e;
 
         return 1;
 }
 
 char sfull(stack *s) {
-        struct elem *node = malloc(sizeof(struct elem));
-        free(node);
-        return node == NULL;
+        struct elem *e;
+
+        e = malloc(sizeof(struct elem));
+        free(e);
+        return e == NULL;
 }
 
 char sempty(stack *s) {
@@ -53,8 +60,10 @@ char sempty(stack *s) {
 }
 
 char spop(stack *s, STYPE *x) {
-        if (s->head != NULL) {
-                struct elem *tmp = s->head;
+        if (s->head) {
+                struct elem *tmp;
+
+                tmp = s->head;
                 STYPE value = s->head->data;
                 s->head = s->head->next;
                 free(tmp);
@@ -66,9 +75,9 @@ char spop(stack *s, STYPE *x) {
 }
 
 void sfree(stack *s) {
-        struct elem *tmp;
-
         while (s->head != NULL) {
+                struct elem *tmp;
+
                 tmp = s->head;
                 s->head = s->head->next;
                 free(tmp);
@@ -78,11 +87,13 @@ void sfree(stack *s) {
 }
 
 void sprint(stack *st) {
-        struct elem *head = st->head;
+        struct elem *h;
+
+        h = st->head;
         printf("Printing what's left in stack:\n");
-        while (head != NULL) {
-                printf("%d\n", (int)head->data);
-                head = head->next;
+        while (h != NULL) {
+                printf("%d\n", (int)h->data);
+                h = h->next;
         }
 
         printf("    End.\n");

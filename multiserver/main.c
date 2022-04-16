@@ -20,14 +20,6 @@
 #define PORT 9999
 #define MAXCLIENTS 10
 
-#define CHECK(X) ({int32_t __val=(X); (__val ==-1 ? \
-({fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
-exit(-1);-1;}) : __val); })
-
-#define CHECK_RETURN(X) ({int32_t __val=(X); (__val <= 0 ? \
-({if(__val == -1) fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
-return -1;}) : __val); })
-
 static char CALLBACK_BUFFER[CALLBACK_SIZE];
 
 static char perform_connection(int32_t ls);
@@ -47,13 +39,32 @@ int32_t main(int32_t argc, char **argv) {
 
         saddr = get_address(PORT);
         CHECK(ls = socket(AF_INET, SOCK_STREAM, 0));
-        CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int32_t)));
+        CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int32_t)));
         CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
         CHECK(listen(ls, 0));
-
         perform_connection(ls);
 
-        close(ls);
+        CHECK_PRINT(close(ls));
+        return 0;
+}
+
+static char perform_connection(const int32_t ls) {
+        int32_t cs[MAXCLIENTS];
+        fd_set readfds;
+        int32_t maxfd;
+
+        init_empty_clients(cs);
+        for (;;) {
+                FD_ZERO(&readfds);
+                maxfd = find_maxfd(cs, &readfds);
+                FD_SET(ls, &readfds);
+                if (ls > maxfd)
+                        maxfd = ls;
+                select(maxfd + 1, &readfds, NULL, NULL, NULL);
+                handle_new_connections(ls, cs, &readfds);
+                read_set_clients(ls, cs, &readfds);
+        }
+
         return 0;
 }
 
@@ -92,7 +103,9 @@ static int32_t handle_read(int32_t fd) {
 static int32_t handle_connect(int32_t fd) {
         int32_t cs;
         struct sockaddr_in caddr;
-        int32_t caddrlen = sizeof(caddr);
+        int32_t caddrlen;
+
+        caddrlen = sizeof(caddr);
         memset(&caddr, 0, caddrlen);
         CHECK_RETURN(cs = accept(fd, (struct sockaddr *)&caddr, &caddrlen));
         print_client_address(caddr);
@@ -122,7 +135,7 @@ static void handle_new_connections(int32_t ls, int32_t *fds, fd_set *fdset) {
 static void read_set_clients(int32_t ls, int32_t *fds, fd_set *fdset) {
         for (int32_t i = 0; i < MAXCLIENTS; i++)
                 if (FD_ISSET(fds[i], fdset) && handle_read(fds[i]) <= 0) {
-                        close(fds[i]);
+                        CHECK_PRINT(close(fds[i]));
                         fds[i] = -1;
                 }
 }
@@ -130,27 +143,4 @@ static void read_set_clients(int32_t ls, int32_t *fds, fd_set *fdset) {
 static void init_empty_clients(int *fds) {
         for (int32_t i = 0; i < MAXCLIENTS; i++)
                 fds[i] = -1;
-}
-
-static char perform_connection(const int32_t ls) {
-        int32_t cs[MAXCLIENTS];
-        char ibuf[INPUT_SIZE];
-        char obuf[OUTPUT_SIZE];
-        int32_t addrlen = -1;
-        fd_set readfds;
-        int32_t maxfd = -1;
-
-        init_empty_clients(cs);
-
-        for (;;) {
-                FD_ZERO(&readfds);
-                maxfd = find_maxfd(cs, &readfds);
-                FD_SET(ls, &readfds);
-                if (ls > maxfd)
-                        maxfd = ls;
-                select(maxfd + 1, &readfds, NULL, NULL, NULL);
-                handle_new_connections(ls, cs, &readfds);
-                read_set_clients(ls, cs, &readfds);
-        }
-        return 0;
 }

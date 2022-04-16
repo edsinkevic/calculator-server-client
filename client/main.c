@@ -7,13 +7,14 @@
 
 #include "../deps/edutils.h"
 
+typedef int int32_t;
 #define PORT 9999
 #define BUFSIZE 1024
 
+static int perform_connection(int cs);
+
 int main(int argc, char *argv[]) {
         struct sockaddr_in saddr;
-        char obuf[BUFSIZE];
-        char ibuf[BUFSIZE];
         int cs;
         int l;
         char *ip;
@@ -29,25 +30,30 @@ int main(int argc, char *argv[]) {
 
         CHECK(connect(cs, (struct sockaddr *)&saddr, l));
 
+        if (perform_connection(cs) == -1)
+                getchar();
+
+        CHECK_PRINT(close(cs));
+
+        return 0;
+}
+
+static int perform_connection(int cs) {
+        char obuf[BUFSIZE];
+        char ibuf[BUFSIZE];
         for (;;) {
                 memset(ibuf, 0, BUFSIZE);
                 memset(obuf, 0, BUFSIZE);
 
                 printf("------------------------------------------\n");
 
-                if (fgets(ibuf, BUFSIZE, stdin) == NULL)
-                        break;
+                if (!fgets(ibuf, BUFSIZE, stdin))
+                        return 0;
 
-                if (write(cs, ibuf, BUFSIZE) <= 0)
-                        break;
-
-                if (read(cs, obuf, BUFSIZE) <= 0)
-                        break;
-
+                CHECK_RETURN(write(cs, ibuf, BUFSIZE));
+                CHECK_RETURN(read(cs, obuf, BUFSIZE));
                 printf("%s", obuf);
         }
-
-        close(cs);
 
         return 0;
 }

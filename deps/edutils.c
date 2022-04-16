@@ -12,9 +12,11 @@
 #include <unistd.h>
 
 char *clean_token(char *s, const int slen, char (*predicate)(const char)) {
-        char *accumulator = (char *)calloc(slen, sizeof(char));
+        char *accumulator;
+        int j;
 
-        int j = 0;
+        accumulator = (char *)calloc(slen, sizeof(char));
+
         for (int i = j = 0; i < slen; i++)
                 if ((*predicate)(s[i]))
                         accumulator[j++] = s[i];
@@ -32,6 +34,7 @@ char check_connection_status(int socket_fd) {
 
 struct sockaddr_in get_address(int port) {
         struct sockaddr_in server_address;
+
         memset((char *)&server_address, 0, sizeof(server_address));
         server_address.sin_family = AF_INET;
         server_address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -45,13 +48,13 @@ void error() {
 }
 
 void print_client_address(struct sockaddr_in client_address) {
-        const struct hostent const *hostp =
-            gethostbyaddr((const char *)&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
-        if (hostp == NULL)
+        struct hostent const *hostp =
+            gethostbyaddr(&client_address.sin_addr.s_addr, sizeof(client_address.sin_addr.s_addr), AF_INET);
+        if (!hostp)
                 error();
 
-        const char const *hostaddrp = inet_ntoa(client_address.sin_addr);
-        if (hostaddrp == NULL)
+        char *hostaddrp = inet_ntoa(client_address.sin_addr);
+        if (!hostaddrp)
                 error();
 
         printf("Client: %s (%s)\n", hostaddrp, hostp->h_name);

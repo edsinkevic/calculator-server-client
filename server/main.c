@@ -20,10 +20,6 @@
 #define QUEUE_SIZE 0
 #define PORT 9999
 
-#define CHECK(X) ({int32_t __val=(X); (__val ==-1 ? \
-({fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
-exit(-1);-1;}) : __val); })
-
 static char CALLBACK_BUFFER[CALLBACK_SIZE];
 
 static void message_callback(const char const *message);
@@ -41,7 +37,7 @@ int32_t main() {
         CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
         CHECK(listen(ls, QUEUE_SIZE));
 
-        for (char q = 0; !q; q = perform_connection(ls, &cs))
+        for (char q = 0; !q; q = perform_connection(ls, &cs) == 0)
                 ;
 
         close(ls);
@@ -54,8 +50,6 @@ static void message_callback(const char const *message) {
 }
 
 static char perform_connection(const int32_t listen_socket, int32_t *connection_socket_p) {
-        char ibuf[INPUT_SIZE];
-        char obuf[OUTPUT_SIZE];
         struct sockaddr_in caddr;
         int32_t addrlen = -1;
         int32_t cs = -1;
@@ -64,33 +58,26 @@ static char perform_connection(const int32_t listen_socket, int32_t *connection_
         CHECK(*connection_socket_p = accept(listen_socket, (struct sockaddr *)&caddr, &addrlen));
         cs = *connection_socket_p;
 
+        print_client_address(caddr);
+
         while (check_connection_status(cs)) {
-                int32_t n = 0;
+                char ibuf[INPUT_SIZE];
+                char obuf[OUTPUT_SIZE];
                 int32_t res = 0;
 
                 memset(ibuf, 0, INPUT_SIZE);
                 memset(obuf, 0, OUTPUT_SIZE);
                 memset(CALLBACK_BUFFER, 0, CALLBACK_SIZE);
 
-                CHECK(n = read(cs, ibuf, INPUT_SIZE));
-                if (n == 0)
-                        return 0;
-
-                if (strncmp(ibuf, "shutdown", 8) == 0)
-                        return 1;
-
-                print_client_address(caddr);
+                CHECK_RETURN(read(cs, ibuf, INPUT_SIZE));
 
                 if (calculate(ibuf, &res, &message_callback))
                         sprintf(obuf, "%s%d\n", CALLBACK_BUFFER, res);
                 else
                         sprintf(obuf, "FAIL\n");
 
-                CHECK(write(cs, obuf, strlen(obuf)));
+                CHECK_RETURN(write(cs, obuf, strlen(obuf)));
         }
-
-        sprintf(obuf, "QUITTING\n");
-        CHECK(write(cs, obuf, strlen(obuf)));
 
         return 0;
 }

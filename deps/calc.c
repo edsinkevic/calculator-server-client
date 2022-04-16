@@ -32,7 +32,7 @@ int32_t calculate(char *unprocessed_input, int32_t *result, void (*MSG_CALLBACK)
         stack *st = sinit();
         t = strtok(input, " ");
 
-        while (t != NULL) {
+        while (t) {
                 if (!(status = handle_token(st, t)))
                         goto end;
                 t = strtok(NULL, " ");
@@ -64,7 +64,7 @@ static char bin_op_stack(stack *st, int32_t (*f)(int32_t, int32_t)) {
 }
 
 static int32_t fadd(int32_t a, int32_t b) {
-        if (EXT_CALLBACK != NULL) {
+        if (EXT_CALLBACK) {
                 char message[BUFSIZE];
                 sprintf(message, "%d + %d\n", a, b);
                 EXT_CALLBACK(message);
@@ -73,7 +73,7 @@ static int32_t fadd(int32_t a, int32_t b) {
 }
 
 static int32_t fminus(int32_t a, int32_t b) {
-        if (EXT_CALLBACK != NULL) {
+        if (EXT_CALLBACK) {
                 char message[BUFSIZE];
                 sprintf(message, "%d - %d\n", a, b);
                 EXT_CALLBACK(message);
@@ -82,7 +82,7 @@ static int32_t fminus(int32_t a, int32_t b) {
 }
 
 static int32_t ftimes(int32_t a, int32_t b) {
-        if (EXT_CALLBACK != NULL) {
+        if (EXT_CALLBACK) {
                 char message[BUFSIZE];
                 sprintf(message, "%d * %d\n", a, b);
                 EXT_CALLBACK(message);
@@ -93,8 +93,8 @@ static int32_t ftimes(int32_t a, int32_t b) {
 static int32_t isnumber(const char *string) {
         int32_t i = 0;
         int32_t l = strlen(string);
-        char isneg = l > 1 && string[0] == '-';
-        if (isneg)
+
+        if (l > 1 && string[0] == '-')
                 ++i;
 
         for (i; i < l; ++i)
