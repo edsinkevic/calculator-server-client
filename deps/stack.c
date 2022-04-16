@@ -3,23 +3,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct element {
+struct elem {
         STYPE data;
-        struct element *next;
+        struct elem *next;
 };
 
 typedef struct _stack {
-        struct element *head;
+        struct elem *head;
 } stack;
 
 stack *sinit() {
-        stack *s = (stack *)malloc(sizeof(stack));
+        stack *s = malloc(sizeof(stack));
         s->head = NULL;
         return s;
 }
 
 int ssize(stack *st) {
-        struct element *h = st->head;
+        struct elem *h = st->head;
         int count = 0;
         while (h != NULL) {
                 count++;
@@ -30,7 +30,7 @@ int ssize(stack *st) {
 }
 
 char spush(stack *s, STYPE data) {
-        struct element *node = (struct element *)malloc(sizeof(struct element));
+        struct elem *node = malloc(sizeof(struct elem));
 
         if (node == NULL)
                 return 0;
@@ -43,7 +43,7 @@ char spush(stack *s, STYPE data) {
 }
 
 char sfull(stack *s) {
-        struct element *node = (struct element *)malloc(sizeof(struct element));
+        struct elem *node = malloc(sizeof(struct elem));
         free(node);
         return node == NULL;
 }
@@ -54,7 +54,7 @@ char sempty(stack *s) {
 
 char spop(stack *s, STYPE *x) {
         if (s->head != NULL) {
-                struct element *tmp = s->head;
+                struct elem *tmp = s->head;
                 STYPE value = s->head->data;
                 s->head = s->head->next;
                 free(tmp);
@@ -66,7 +66,7 @@ char spop(stack *s, STYPE *x) {
 }
 
 void sfree(stack *s) {
-        struct element *tmp;
+        struct elem *tmp;
 
         while (s->head != NULL) {
                 tmp = s->head;
@@ -78,7 +78,7 @@ void sfree(stack *s) {
 }
 
 void sprint(stack *st) {
-        struct element *head = st->head;
+        struct elem *head = st->head;
         printf("Printing what's left in stack:\n");
         while (head != NULL) {
                 printf("%d\n", (int)head->data);
