@@ -1,49 +1,59 @@
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <arpa/inet.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
+
 #include "../deps/edutils.h"
 
+typedef int int32_t;
 #define PORT 9999
 #define BUFSIZE 1024
 
-int main(int argc, char const *argv[])
-{
-    struct sockaddr_in saddr;
-    char obuf[BUFSIZE];
-    char ibuf[BUFSIZE];
+static int perform_connection(int cs);
 
-    const int cs = socket(AF_INET, SOCK_STREAM, 0);
-    const int l = sizeof(saddr);
-    const char *ip = "127.0.0.1";
+int main(int argc, char *argv[]) {
+        struct sockaddr_in saddr;
+        int cs;
+        int l;
+        char *ip;
 
-    bzero(&saddr, l);
-    saddr.sin_family = AF_INET;
-    saddr.sin_addr.s_addr = inet_addr(ip);
-    saddr.sin_port = htons(PORT);
+        CHECK(cs = socket(AF_INET, SOCK_STREAM, 0));
+        l = sizeof(saddr);
+        ip = "127.0.0.1";
 
-    connect(cs, (const struct sockaddr *)&saddr, l);
+        memset(&saddr, 0, l);
+        saddr.sin_family = AF_INET;
+        saddr.sin_addr.s_addr = inet_addr(ip);
+        saddr.sin_port = htons(PORT);
 
-    while (1)
-    {
-        printf("------------------------------------------\n");
-        bzero(ibuf, BUFSIZE);
-        if (fgets(ibuf, BUFSIZE, stdin) == NULL)
-            break;
+        CHECK(connect(cs, (struct sockaddr *)&saddr, l));
 
-        if (write(cs, ibuf, BUFSIZE) <= 0)
-            break;
+        if (perform_connection(cs) == -1)
+                getchar();
 
-        bzero(obuf, BUFSIZE);
-        if (read(cs, obuf, BUFSIZE) <= 0)
-            break;
+        CHECK_PRINT(close(cs));
 
-        printf("%s", obuf);
-    }
+        return 0;
+}
 
-    close(cs);
+static int perform_connection(int cs) {
+        char obuf[BUFSIZE];
+        char ibuf[BUFSIZE];
+        for (;;) {
+                memset(ibuf, 0, BUFSIZE);
+                memset(obuf, 0, BUFSIZE);
 
-    return 0;
+                printf("------------------------------------------\n");
+
+                if (!fgets(ibuf, BUFSIZE, stdin))
+                        return 0;
+
+                CHECK_RETURN(write(cs, ibuf, BUFSIZE));
+                CHECK_RETURN(read(cs, obuf, BUFSIZE));
+                printf("%s", obuf);
+        }
+
+        return 0;
 }
