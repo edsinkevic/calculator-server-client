@@ -19,10 +19,7 @@ static char cpred(char c);
 
 #define BUFSIZE 1024
 
-#define CHECK_PRINT(X) ({int32_t __val=(X); (__val ==-1 ? \
-({fprintf(stderr,"ERROR (" __FILE__":%d) -- %s\n",__LINE__,strerror(errno));\
--1;}) : __val); })
-void (*EXT_CALLBACK)(const char const *message) = NULL;
+static void (*EXT_CALLBACK)(const char const *message) = NULL;
 
 int calculate(char *unprocessed_input, int *result, void (*MSG_CALLBACK)(const char const *message)) {
         char input[BUFSIZE];
@@ -47,8 +44,6 @@ int calculate(char *unprocessed_input, int *result, void (*MSG_CALLBACK)(const c
                 goto end;
         }
 
-        sprint(st);
-
         status = spop(st, result);
 end:
         sprint(st);
@@ -66,17 +61,13 @@ static char handle_token(stack *st, char *dirty_token) {
         tlen = strlen(t);
         status = EXIT_FAILURE;
 
-        if (isnumber(t)) {
+        if (isnumber(t))
                 status = spush(st, atol(t));
-                goto end;
-        }
-        if (tlen == 1) {
+        else if (tlen == 1)
                 status = handle_op(st, t[0]);
-                goto end;
-        }
+        else
+                status = EXIT_FAILURE;
 
-        status = EXIT_FAILURE;
-end:
         free(t);
         return status;
 }
