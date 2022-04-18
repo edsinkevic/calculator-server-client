@@ -15,15 +15,15 @@
 #include "../deps/calc.h"
 #include "../deps/edutils.h"
 
+typedef int in32_t;
+
 #define OUTPUT_SIZE 1024
 #define INPUT_SIZE OUTPUT_SIZE
-#define CALLBACK_SIZE OUTPUT_SIZE - sizeof(int32_t) - 1
+#define CALLBACK_SIZE OUTPUT_SIZE - sizeof(int) - 1
 #define PORT 9999
 #define MAXCLIENTS 10
 
-typedef int in32_t;
-
-static char perform_connection(int ls);
+static int perform_connection(int ls, int *cs);
 static void handle_messages(int ls, int *fds, fd_set *fdset);
 static int find_free_slot(int *fds);
 static int handle_read(int fd);
@@ -32,20 +32,13 @@ static int set_existing_clients(int *fds, fd_set *fdset);
 static void handle_new_connections(int ls, int *fds, fd_set *fdset);
 static void handle_messages(int ls, int *fds, fd_set *fdset);
 static void init_empty_clients(int *fds);
+static void close_clients(int fds[]);
 
-static int CLIENT_SOCKETS[MAXCLIENTS];
 static char CALLBACK_BUFFER[CALLBACK_SIZE];
 
-static void sigint_handler(int sig) {
-        for (int i = 0; i < MAXCLIENTS; ++i)
-                close(CLIENT_SOCKETS[i]);
-        exit(EXIT_SUCCESS);
-}
-
 int main(int argc, char **argv) {
-        signal(SIGINT, sigint_handler);
-
         int ls;
+        int cs[MAXCLIENTS];
         struct sockaddr_in saddr;
         int optval;
 
@@ -56,29 +49,40 @@ int main(int argc, char **argv) {
         CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)));
         CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
         CHECK(listen(ls, 0));
-        perform_connection(ls);
+        perform_connection(ls, cs);
 
-        CHECK_PRINT(close(ls));
-        return 0;
+        CHECK(close(ls));
+        close_clients(cs);
+        return EXIT_SUCCESS;
 }
 
-static char perform_connection(const int ls) {
+static int perform_connection(const int ls, int *cs) {
         fd_set readfds;
         int maxfd;
+        struct timeval time;
 
-        init_empty_clients(CLIENT_SOCKETS);
+        time.tv_usec = 0;
+        time.tv_sec = 0;
+
+        init_empty_clients(cs);
         for (;;) {
                 FD_ZERO(&readfds);
-                maxfd = set_existing_clients(CLIENT_SOCKETS, &readfds);
+                maxfd = set_existing_clients(cs, &readfds);
                 FD_SET(ls, &readfds);
                 if (ls > maxfd)
                         maxfd = ls;
-                CHECK_PRINT(select(maxfd + 1, &readfds, NULL, NULL, NULL));
-                handle_new_connections(ls, CLIENT_SOCKETS, &readfds);
-                handle_messages(ls, CLIENT_SOCKETS, &readfds);
+                CHECK_RETURN(select(maxfd + 1, &readfds, NULL, NULL, NULL));
+                handle_new_connections(ls, cs, &readfds);
+                handle_messages(ls, cs, &readfds);
         }
 
-        return 0;
+        return EXIT_SUCCESS;
+}
+
+static void close_clients(int fds[]) {
+        for (int i = 0; i < MAXCLIENTS; i++)
+                if (fds[i] != -1)
+                        CHECK_PRINT(close(fds[i]));
 }
 
 static int find_free_slot(int fds[]) {
