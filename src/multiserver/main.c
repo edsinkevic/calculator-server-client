@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -49,7 +50,7 @@ int main(int argc, char **argv) {
         CHECK(setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)));
         CHECK(bind(ls, (struct sockaddr *)&saddr, sizeof(saddr)));
         CHECK(listen(ls, 0));
-        perform_connection(ls, cs);
+        CHECK_PRINT(perform_connection(ls, cs));
 
         CHECK(close(ls));
         close_clients(cs);
