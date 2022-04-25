@@ -16,7 +16,7 @@
 #include "../deps/calc.h"
 #include "../deps/edutils.h"
 
-typedef int in32_t;
+typedef int int32_t;
 
 #define OUTPUT_SIZE 1024
 #define INPUT_SIZE OUTPUT_SIZE
